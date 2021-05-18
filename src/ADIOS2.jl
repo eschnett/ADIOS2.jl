@@ -8,6 +8,11 @@ const Maybe{T} = Union{Nothing,T}
 maybe(::Nothing, other) = other
 maybe(x, other) = x
 
+function free(ptr::Ptr)
+    @static Sys.iswindows() ? Libc.free(ptr) :
+            ccall((:free, libadios2_c), Cvoid, (Ptr{Cvoid},), ptr)
+end
+
 ### Types
 
 export Error
@@ -132,7 +137,7 @@ function inquire_all_variables(io::AIO)
         @assert ptr ≠ C_NULL
         variables[n] = Variable(ptr)
     end
-    ccall((:free, libadios2_c), Cvoid, (Ptr{Cvoid},), c_variables[])
+    free(c_variables[])
     return variables
 end
 
