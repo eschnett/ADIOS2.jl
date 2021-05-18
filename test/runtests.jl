@@ -4,6 +4,21 @@ using MPI
 using Printf
 using Test
 
+################################################################################
+
+# Initialize MPI
+const mpi_initialized = MPI.Initialized()
+if !mpi_initialized
+    MPI.Init()
+end
+const comm = MPI.COMM_WORLD
+const comm_rank = MPI.Comm_rank(comm)
+const comm_size = MPI.Comm_size(comm)
+const comm_root = 0
+const use_mpi = comm_size > 1
+
+################################################################################
+
 @testset "Internal tests" begin
     for jtype in ADIOS2.julia_types
         @test ADIOS2.julia_type(ADIOS2.adios_type(jtype)) ≡ jtype
@@ -13,18 +28,13 @@ using Test
     end
 end
 
-const have_mpi = MPI.Initialized()
-const comm = have_mpi ? MPI.COMM_WORLD : nothing
-const comm_rank = have_mpi ? MPI.Comm_rank(comm) : 0
-const comm_size = have_mpi ? MPI.Comm_size(comm) : 1
-const comm_root = 0
 
 const rankstr = @sprintf "%06d" comm_rank
 
 if comm_rank == comm_root
     const dirname = Filesystem.mktempdir(; cleanup=true)
 end
-if have_mpi
+if use_mpi
     if comm_rank == comm_root
         MPI.bcast(dirname, comm_root, comm)
     else
@@ -35,7 +45,7 @@ const filename = "$dirname/test.bp"
 
 @testset "File tests" for pass in 1:3
     # Set up ADIOS
-    if have_mpi
+    if use_mpi
         adios = init_mpi(comm)
     else
         adios = init_serial()
@@ -125,3 +135,11 @@ const filename = "$dirname/test.bp"
 end
 # Call gc to test finalizing the Adios object
 GC.gc(true)
+
+################################################################################
+
+# Finalize MPI
+const mpi_finalized = MPI.Finalized()
+if mpi_initialized && !mpi_finalized
+    MPI.Finalize()
+end
