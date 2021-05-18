@@ -16,11 +16,44 @@ end
 ### Types
 
 export Error
-export error_none, error_invalid_argumet, error_system_error,
+export error_none, error_invalid_argument, error_system_error,
        error_runtime_error, error_exception
-@enum Error error_none = 0 error_invalid_argumet = 1 error_system_error = 2 error_runtime_error = 3 error_exception = 4
+"""
+    @enum Error begin
+        error_none
+        error_invalid_argument
+        error_system_error
+        error_runtime_error
+        error_exception
+    end
 
-@enum AType type_unknown = -1 type_string = 0 type_float = 1 type_double = 2 type_float_complex = 3 type_double_complex = 4 type_int8_t = 5 type_int16_t = 6 type_int32_t = 7 type_int64_t = 8 type_uint8_t = 9 type_uint16_t = 10 type_uint32_t = 11 type_uint64_t = 12 type_long_double = 13
+Error codes returned from various functions
+"""
+@enum Error begin
+    error_none = 0
+    error_invalid_argument = 1
+    error_system_error = 2
+    error_runtime_error = 3
+    error_exception = 4
+end
+
+@enum AType begin
+    type_unknown = -1
+    type_string = 0
+    type_float = 1
+    type_double = 2
+    type_float_complex = 3
+    type_double_complex = 4
+    type_int8_t = 5
+    type_int16_t = 6
+    type_int32_t = 7
+    type_int64_t = 8
+    type_uint8_t = 9
+    type_uint16_t = 10
+    type_uint32_t = 11
+    type_uint64_t = 12
+    type_long_double = 13
+end
 
 # We omit `type_long_double` that we cannot handle
 const adios_types = AType[type_string, type_float, type_double,
@@ -50,7 +83,28 @@ julia_type(type::AType) = julia_types[Int(type) + 1]
 export Mode
 export mode_undefined, mode_write, mode_read, mode_append, mode_deferred,
        mode_sync
-@enum Mode mode_undefined = 0 mode_write = 1 mode_read = 2 mode_append = 3 mode_deferred = 4 mode_sync = 5
+"""
+    @enum Mode begin
+        mode_undefined
+        mode_write
+        mode_read
+        mode_append
+        mode_deferred
+        mode_sync
+    end
+
+Mode specifies for various functions. `write`, `read`, `append` are
+used for file operations, `deferred`, `sync` are used for get and put
+operations.
+"""
+@enum Mode begin
+    mode_undefined = 0
+    mode_write = 1
+    mode_read = 2
+    mode_append = 3
+    mode_deferred = 4
+    mode_sync = 5
+end
 
 ### Adios functions
 
@@ -71,7 +125,8 @@ Adios() = Adios(C_NULL)
 
 export init_serial
 """
-    adios = init_serial()::Adios
+    adios = init_serial()
+    adios::Union{Adios,Nothing}
 
 Initialize an Adios struct in a serial, non-MPI application. Doesn’t
 require a runtime config file.
@@ -86,7 +141,8 @@ end
 
 export declare_io
 """
-    io = declare_io(adios::Adios, name::AbstractString)::AIO
+    io = declare_io(adios::Adios, name::AbstractString)
+    io::Union{AIO,Nothing}
 
 Declare a new IO handler.
 
@@ -101,7 +157,8 @@ end
 
 export afinalize
 """
-    afinalize(adios::Adios)
+    err = afinalize(adios::Adios)
+    err::Error
 
 Finalize the ADIOS context `adios`. It is usually not necessary to
 call this function.

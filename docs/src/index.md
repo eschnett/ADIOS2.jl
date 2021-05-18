@@ -4,6 +4,13 @@
 interface to the [ADIOS2](https://github.com/ornladios/ADIOS2), the
 Adaptable Input Output System version 2.
 
+## Types
+
+```@docs
+Error
+Mode
+```
+
 ## Adios functions
 
 ```@docs
