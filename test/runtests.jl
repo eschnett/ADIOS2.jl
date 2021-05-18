@@ -1,5 +1,7 @@
 using ADIOS2
 using Base.Filesystem
+using MPI
+using Printf
 using Test
 
 @testset "Internal tests" begin
@@ -11,12 +13,33 @@ using Test
     end
 end
 
-dirname = Filesystem.mktempdir()
-filename = "$dirname/test.bp"
+const have_mpi = MPI.Initialized()
+const comm = have_mpi ? MPI.COMM_WORLD : nothing
+const comm_rank = have_mpi ? MPI.Comm_rank(comm) : 0
+const comm_size = have_mpi ? MPI.Comm_size(comm) : 1
+const comm_root = 0
+
+const rankstr = @sprintf "%06d" comm_rank
+
+if comm_rank == comm_root
+    const dirname = Filesystem.mktempdir(; cleanup=true)
+end
+if have_mpi
+    if comm_rank == comm_root
+        MPI.bcast(dirname, comm_root, comm)
+    else
+        const dirname = MPI.bcast(nothing, comm_root, comm)
+    end
+end
+const filename = "$dirname/test.bp"
 
 @testset "File tests" for pass in 1:3
     # Set up ADIOS
-    adios = init_serial()
+    if have_mpi
+        adios = init_mpi(comm)
+    else
+        adios = init_serial()
+    end
     @test adios isa Adios
 
     io = declare_io(adios, "IO")
@@ -24,20 +47,26 @@ filename = "$dirname/test.bp"
 
     # Define some variables
     scalar = 247.0
-    svar = define_variable(io, "scalar", scalar)
+    svar = define_variable(io, "scalar.p$rankstr", scalar)
     @test svar isa Variable
 
     array = Float64[10i + j for i in 1:2, j in 1:3]
-    avar = define_variable(io, "array", array)
+    avar = define_variable(io, "array.p$rankstr", array)
     @test avar isa Variable
 
-    var1 = inquire_variable(io, "array")
+    garray = Float64[10i + (3 * comm_rank + j) for i in 1:2, j in 1:3]
+    gsh = CartesianIndex((1, comm_size) .* size(garray))
+    gst = CartesianIndex((0, comm_rank) .* size(garray))
+    gco = CartesianIndex(size(garray))
+    gvar = define_variable(io, "garray", eltype(garray), gsh, gst, gco)
+
+    var1 = inquire_variable(io, "array.p$rankstr")
     @test var1 isa Variable
-    var2 = inquire_variable(io, "not a variable")
+    var2 = inquire_variable(io, "not a variable.p$rankstr")
     @test var2 isa Nothing
 
     allvars = inquire_all_variables(io)
-    @test Set(allvars) == Set([svar, avar])
+    @test Set(allvars) == Set([svar, avar, gvar])
 
     if pass == 1
 

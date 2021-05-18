@@ -15,6 +15,7 @@ Mode
 
 ```@docs
 Adios
+init_mpi
 init_serial
 declare_io
 afinalize

@@ -1,6 +1,7 @@
 module ADIOS2
 
 using ADIOS2_jll
+using MPI
 
 ### Helpers
 
@@ -122,6 +123,20 @@ mutable struct Adios
     Adios(ptr) = finalizer(afinalize, new(ptr))
 end
 Adios() = Adios(C_NULL)
+
+export init_mpi
+"""
+    adios = init_mpi(MPI.Comm)
+    adios::Union{Adios,Nothing}
+
+Starting point for MPI apps. Creates an ADIOS handler. MPI collective
+and it calls `MPI_Comm_dup`.
+"""
+function init_mpi(comm::MPI.Comm)
+    ptr = ccall((:adios2_init_mpi, libadios2_c_mpi), Ptr{Cvoid},
+                (MPI.MPI_Comm,), comm)
+    return ptr == C_NULL ? nothing : Adios(ptr)
+end
 
 export init_serial
 """
