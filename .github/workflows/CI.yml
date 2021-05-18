@@ -15,12 +15,15 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.6"
+            prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "windows-latest"
             version: "1.6"
+            prefix:
           - arch: "x64"
             os: "macOS-latest"
             version: "1.6"
+            prefix: $HOME/.julia/bin/mpiexecjl2
           # 32-bit architecture are not supported by ADIOS2
           # - arch: "x86"
           #   os: "ubuntu-latest"
@@ -28,12 +31,15 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "nightly"
+            prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.5"
+            prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.4"
+            prefix: $HOME/.julia/bin/mpiexecjl2
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
@@ -61,11 +67,9 @@ jobs:
             MPI.install_mpiexecjl()' &&
           echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
           chmod a+x ~/.julia/bin/mpiexecjl2
-# /home/runner
-# /Users/runner
       - uses: julia-actions/julia-runtest@v1
         with:
-          prefix: $HOME/.julia/bin/mpiexecjl2
+          prefix: ${{ matrix.prefix }}
         continue-on-error: ${{matrix.version == 'nightly'}}
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v1
