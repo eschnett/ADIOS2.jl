@@ -55,6 +55,14 @@ export mode_undefined, mode_write, mode_read, mode_append, mode_deferred,
 ### Adios functions
 
 export Adios
+"""
+    mutable struct Adios
+
+Holds a C pointer `adios2_adios *`.
+
+This value is finalized automatically. It can also be explicitly
+finalized by calling `finalize(adios)`.
+"""
 mutable struct Adios
     ptr::Ptr{Cvoid}
     Adios(ptr) = finalizer(afinalize, new(ptr))
@@ -62,12 +70,29 @@ end
 Adios() = Adios(C_NULL)
 
 export init_serial
+"""
+    adios = init_serial()::Adios
+
+Initialize an Adios struct in a serial, non-MPI application. Doesn’t
+require a runtime config file.
+
+See also the [ADIOS2
+documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv418adios2_init_serialv).
+"""
 function init_serial()
     ptr = ccall((:adios2_init_serial, libadios2_c), Ptr{Cvoid}, ())
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
 
 export declare_io
+"""
+    io = declare_io(adios::Adios, name::AbstractString)::AIO
+
+Declare a new IO handler.
+
+See also the [ADIOS2
+documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv417adios2_declare_ioP12adios2_adiosPKc).
+"""
 function declare_io(adios::Adios, name::AbstractString)
     ptr = ccall((:adios2_declare_io, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring), adios.ptr, name)
@@ -75,6 +100,19 @@ function declare_io(adios::Adios, name::AbstractString)
 end
 
 export afinalize
+"""
+    afinalize(adios::Adios)
+
+Finalize the ADIOS context `adios`. It is usually not necessary to
+call this function.
+
+Instead of calling this function, one can also call the finalizer via
+`finalize(adios)`. This finalizer is also called automatically when
+the Adios object is garbage collected.
+
+See also the [ADIOS2
+documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv415adios2_finalizeP12adios2_adios)
+"""
 function afinalize(adios::Adios)
     adios.ptr == C_NULL && return error_none
     err = ccall((:adios2_finalize, libadios2_c), Cint, (Ptr{Cvoid},), adios.ptr)
