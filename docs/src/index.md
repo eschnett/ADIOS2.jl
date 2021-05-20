@@ -29,7 +29,16 @@ AIO
 define_variable
 inquire_variable
 inquire_all_variables
+define_attribute
+define_attribute_array
+define_variable_attribute
+define_variable_attribute_array
+inquire_attribute
+inquire_variable_attribute
+inquire_all_attributes
 open
+engine_type
+get_engine
 ```
 
 ## Variable functions
@@ -48,6 +57,11 @@ steps
 selection_size
 minimum
 maximum
+```
+
+## Attribute functions
+```@docs
+Attribute
 ```
 
 ## Engine functions

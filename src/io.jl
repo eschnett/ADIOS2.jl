@@ -106,6 +106,139 @@ function inquire_all_variables(io::AIO)
     return variables
 end
 
+export define_attribute
+"""
+    attribute = define_attribute(io::AIO, name::AbstractString, value)
+    attribute::Union{Nothing,Attribute}
+
+Define an attribute value inside `io`.
+"""
+function define_attribute(io::AIO, name::AbstractString, value)
+    T = typeof(value)
+    ptr = ccall((:adios2_define_attribute, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}), io.ptr, name,
+                adios_type(T), Ref(value))
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export define_attribute_array
+"""
+    attribute = define_attribute_array(io::AIO, name::AbstractString,
+                                       values::AbstractVector)
+    attribute::Union{Nothing,Attribute}
+
+Define an attribute array inside `io`.
+"""
+function define_attribute_array(io::AIO, name::AbstractString,
+                                values::AbstractVector)
+    T = eltype(values)
+    ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr, name,
+                adios_type(T), values, length(values))
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export define_variable_attribute
+"""
+    attribute = define_variable_attribute(io::AIO, name::AbstractString, value,
+                                          variable_name::AbstractString,
+                                          separator::AbstractString="/")
+    attribute::Union{Nothing,Attribute}
+
+Define an attribute single value associated to an existing variable by
+its name.
+"""
+function define_variable_attribute(io::AIO, name::AbstractString, value,
+                                   variable_name::AbstractString,
+                                   separator::AbstractString="/")
+    T = typeof(value)
+    ptr = ccall((:adios2_define_variable_attribute, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Cstring, Cstring),
+                io.ptr, name, adios_type(T), Ref(value), variable_name,
+                separator)
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export define_variable_attribute_array
+"""
+    attribute = define_variable_attribute_array(io::AIO, name::AbstractString,
+                                                values::AbstractVector,
+                                                variable_name::AbstractString,
+                                                separator::AbstractString="/")
+    attribute::Union{Nothing,Attribute}
+
+Define an attribute array associated to an existing variable by its
+name.
+"""
+function define_variable_attribute_array(io::AIO, name::AbstractString,
+                                         values::AbstractVector,
+                                         variable_name::AbstractString,
+                                         separator::AbstractString="/")
+    T = eltype(values)
+    ptr = ccall((:adios2_define_variable_attribute_array, libadios2_c),
+                Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t, Cstring,
+                 Cstring), io.ptr, name, adios_type(T), values, length(values),
+                variable_name, separator)
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export inquire_attribute
+"""
+    attribute = inquire_attribute(io::AIO, name::AbstractString)
+    attribute::Union{Nothing,Attribute}
+
+Return a handler to a previously defined attribute by name.
+"""
+function inquire_attribute(io::AIO, name::AbstractString)
+    ptr = ccall((:adios2_inquire_attribute, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring), io.ptr, name)
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export inquire_variable_attribute
+"""
+    attribute = inquire_variable_attribute(io::AIO, name::AbstractString,
+                                           variable_name::AbstractString,
+                                           separator::AbstractString="/")
+    attribute::Union{Nothing,Attribute}
+
+Return a handler to a previously defined attribute by name.
+"""
+function inquire_variable_attribute(io::AIO, name::AbstractString,
+                                    variable_name::AbstractString,
+                                    separator::AbstractString="/")
+    ptr = ccall((:adios2_inquire_variable_attribute, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cstring, Cstring), io.ptr, name,
+                variable_name, separator)
+    return ptr == C_NULL ? nothing : Attribute(ptr)
+end
+
+export inquire_all_attributes
+"""
+    attributes = inquire_all_attributes(io::AIO)
+    attributes::Union{Nothing,Vector{Attribute}}
+
+Return an array of attribute handlers for all attribute present in the
+io group.
+"""
+function inquire_all_attributes(io::AIO)
+    c_attributes = Ref{Ptr{Ptr{Cvoid}}}()
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_inquire_all_attributes, libadios2_c), Cint,
+                (Ref{Ptr{Ptr{Cvoid}}}, Ref{Csize_t}, Ptr{Cvoid}), c_attributes,
+                size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    attributes = Array{Attribute}(undef, size[])
+    for n in 1:length(attributes)
+        ptr = unsafe_load(c_attributes[], n)
+        @assert ptr ≠ C_NULL
+        attributes[n] = Attribute(ptr)
+    end
+    free(c_attributes[])
+    return attributes
+end
+
 """
     engine = open(io::AIO, name::AbstractString, mode::Mode)
     engine::Union{Nothing,Engine}
@@ -118,10 +251,40 @@ MPI Collective function as it calls `MPI_Comm_dup`.
 # Arguments
 - `io`: engine owner
 - `name`: unique engine identifier
-- `mode`: `mode_write`, `mode_read`, `mode_appendq (not yet supported)
+- `mode`: `mode_write`, `mode_read`, `mode_append` (not yet supported)
 """
 function Base.open(io::AIO, name::AbstractString, mode::Mode)
     ptr = ccall((:adios2_open, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint), io.ptr, name, Cint(mode))
+    return ptr == C_NULL ? nothing : Engine(ptr)
+end
+
+export engine_type
+"""
+    type = engine_type(io::AIO)
+    type::Union{Nothing,String}
+
+Return engine type string.
+"""
+function engine_type(io::AIO)
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_engine_type, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    type = '\0'^size[]
+    err = ccall((:adios2_engine_type, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), type, size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    return type
+end
+
+export get_engine
+"""
+    engine = get_engine(io::AIO, name::AbstractString)
+    engine::Union{Nothing,Engine}
+"""
+function get_engine(io::AIO, name::AbstractString)
+    ptr = ccall((:adios2_get_engin, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring), io.ptr, name)
     return ptr == C_NULL ? nothing : Engine(ptr)
 end

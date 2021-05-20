@@ -101,11 +101,54 @@ const filename = "$dirname/test.bp"
     # @test_broken count(avar) == CartesianIndex(2, 3)
     @test count(gvar) == gco
 
-    if pass == 1
+    etype = engine_type(io)
+    @test etype == "File"
 
-        # do nothing
+    if pass == 1
+        attr = define_attribute(io, "attribute.p$rankstr", 247.0f0)
+        @test attr isa Attribute
+        attrarr = define_attribute_array(io, "attribute_array.p$rankstr",
+                                         Float32[3, 1, 4, 1, 6])
+        @test attrarr isa Attribute
+        varattr = define_variable_attribute(io, "variable_attribute.p$rankstr",
+                                            247, name(svar))
+        @test varattr isa Attribute
+        varattrarr = define_variable_attribute_array(io,
+                                                     "variable_attribute_array.p$rankstr",
+                                                     [3, 1, 4, 1, 6],
+                                                     name(svar))
+        @test varattrarr isa Attribute
+
+        attr0 = inquire_attribute(io, "no such attribute")
+        @test attr0 isa Nothing
+        attr1 = inquire_attribute(io, "attribute.p$rankstr")
+        @test attr1 isa Attribute
+        attrs = inquire_all_attributes(io)
+        @test Set(attrs) == Set([attr, attrarr, varattr, varattrarr])
+
+        # Don't read/write any variables
 
     elseif pass == 2
+        attr = define_attribute(io, "attribute.p$rankstr", 247.0f0)
+        @test attr isa Attribute
+        attrarr = define_attribute_array(io, "attribute_array.p$rankstr",
+                                         Float32[3, 1, 4, 1, 6])
+        @test attrarr isa Attribute
+        varattr = define_variable_attribute(io, "variable_attribute.p$rankstr",
+                                            247, name(svar))
+        @test varattr isa Attribute
+        varattrarr = define_variable_attribute_array(io,
+                                                     "variable_attribute_array.p$rankstr",
+                                                     [3, 1, 4, 1, 6],
+                                                     name(svar))
+        @test varattrarr isa Attribute
+
+        attr0 = inquire_attribute(io, "no such attribute")
+        @test attr0 isa Nothing
+        attr1 = inquire_attribute(io, "attribute.p$rankstr")
+        @test attr1 isa Attribute
+        attrs = inquire_all_attributes(io)
+        @test Set(attrs) == Set([attr, attrarr, varattr, varattrarr])
 
         # Write a file
         engine = open(io, filename, mode_write)
@@ -123,7 +166,7 @@ const filename = "$dirname/test.bp"
         # @test maximum(svar) == scalar
         # @test maximum(avar) == 23
         # @test maximum(gvar) == 23
-        
+
         err = close(engine)
         @test err ≡ error_none
 
@@ -131,6 +174,27 @@ const filename = "$dirname/test.bp"
 
         # Read the file
         engine = open(io, filename, mode_read)
+
+        attr = inquire_attribute(io, "attribute.p$rankstr")
+        @test attr isa Attribute
+        attrarr = inquire_attribute(io, "attribute_array.p$rankstr")
+        @test attrarr isa Attribute
+        varattr = inquire_variable_attribute(io, "variable_attribute.p$rankstr",
+                                             name(svar))
+        @test varattr isa Attribute
+        varattrarr = inquire_variable_attribute(io,
+                                                "variable_attribute_array.p$rankstr",
+                                                name(svar))
+        @test varattrarr isa Attribute
+
+        attr0 = inquire_attribute(io, "no such attribute")
+        @test attr0 isa Nothing
+        attr1 = inquire_attribute(io, "attribute.p$rankstr")
+        @test attr1 isa Attribute
+        attrs = inquire_all_attributes(io)
+        @test Set(attrs) == Set([attr, attrarr, varattr, varattrarr])
+
+        # Read variables
 
         scalar′ = Ref(scalar + 1)
         err = get(engine, svar, scalar′)
@@ -153,9 +217,7 @@ const filename = "$dirname/test.bp"
 
         err = close(engine)
         @test err ≡ error_none
-
     end
-
 
     # Test various versions of finalizing the Adios object
     if pass == 1
