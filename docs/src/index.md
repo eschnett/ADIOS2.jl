@@ -9,6 +9,7 @@ Adaptable Input Output System version 2.
 ```@docs
 Error
 Mode
+ShapeId
 ```
 
 ## Adios functions
@@ -19,4 +20,39 @@ init_mpi
 init_serial
 declare_io
 afinalize
+```
+
+## IO functions
+
+```@docs
+AIO
+define_variable
+inquire_variable
+inquire_all_variables
+open
+```
+
+## Variable functions
+
+```@docs
+Variable
+variable_name
+variable_type
+variable_type_string
+variable_shapeid
+variable_ndims
+variable_shape
+variable_start
+variable_count
+variable_steps_start
+variable_steps
+variable_selection_size
+variable_min
+variable_max
+```
+
+## Engine functions
+
+```@docs
+Engine
 ```

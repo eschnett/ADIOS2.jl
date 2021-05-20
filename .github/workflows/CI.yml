@@ -19,7 +19,7 @@ jobs:
           - arch: "x64"
             os: "windows-latest"
             version: "1.6"
-            prefix:
+            prefix:             # MPI does not seem to work on Windows
           - arch: "x64"
             os: "macOS-latest"
             version: "1.6"

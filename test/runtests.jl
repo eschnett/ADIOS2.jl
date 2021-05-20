@@ -28,7 +28,6 @@ const use_mpi = comm_size > 1
     end
 end
 
-
 const rankstr = @sprintf "%06d" comm_rank
 
 if comm_rank == comm_root
