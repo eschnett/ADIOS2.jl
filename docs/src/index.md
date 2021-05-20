@@ -16,10 +16,10 @@ ShapeId
 
 ```@docs
 Adios
-init_mpi
-init_serial
+adios_init_mpi
+adios_init_serial
 declare_io
-afinalize
+adios_finalize
 ```
 
 ## IO functions
@@ -36,19 +36,18 @@ open
 
 ```@docs
 Variable
-variable_name
-variable_type
-variable_type_string
-variable_shapeid
-variable_ndims
-variable_shape
-variable_start
-variable_count
-variable_steps_start
-variable_steps
-variable_selection_size
-variable_min
-variable_max
+name
+type
+shapeid
+ndims
+shape
+start
+count
+steps_start
+steps
+selection_size
+minimum
+maximum
 ```
 
 ## Engine functions

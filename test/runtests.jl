@@ -45,9 +45,9 @@ const filename = "$dirname/test.bp"
 @testset "File tests" for pass in 1:3
     # Set up ADIOS
     if use_mpi
-        adios = init_mpi(comm)
+        adios = adios_init_mpi(comm)
     else
-        adios = init_serial()
+        adios = adios_init_serial()
     end
     @test adios isa Adios
 
@@ -77,6 +77,30 @@ const filename = "$dirname/test.bp"
     allvars = inquire_all_variables(io)
     @test Set(allvars) == Set([svar, avar, gvar])
 
+    @test name(svar) == "scalar.p$rankstr"
+    @test name(avar) == "array.p$rankstr"
+    @test name(gvar) == "garray"
+    @test type(svar) == typeof(scalar)
+    @test type(avar) == eltype(array)
+    @test type(gvar) == eltype(garray)
+    @test shapeid(svar) == shapeid_global_value
+    @test shapeid(avar) == shapeid_local_array
+    @test shapeid(gvar) == shapeid_global_array
+    @test ndims(svar) == 0
+    @test ndims(avar) == 0      # avar is alocal
+    @test ndims(gvar) == 2
+    @test shape(svar) == CartesianIndex()
+    @test shape(avar) == CartesianIndex() # avar is local
+    @test shape(gvar) == gsh
+    @test start(svar) == CartesianIndex()
+    @test start(avar) == CartesianIndex() # avar is local
+    @test start(gvar) == gst
+    @test count(svar) == CartesianIndex()
+    # This segfaults; see
+    # <https://github.com/ornladios/ADIOS2/issues/2711>
+    # @test_broken count(avar) == CartesianIndex(2, 3)
+    @test count(gvar) == gco
+
     if pass == 1
 
         # do nothing
@@ -93,6 +117,13 @@ const filename = "$dirname/test.bp"
         err = perform_puts!(engine)
         @test err ≡ error_none
 
+        # @test minimum(svar) == scalar
+        # @test minimum(avar) == 11
+        # @test minimum(gvar) == 11
+        # @test maximum(svar) == scalar
+        # @test maximum(avar) == 23
+        # @test maximum(gvar) == 23
+        
         err = close(engine)
         @test err ≡ error_none
 
@@ -113,15 +144,24 @@ const filename = "$dirname/test.bp"
         @test scalar′[] == scalar
         @test array′ == array
 
+        @test_broken minimum(svar) == scalar
+        @test_broken minimum(avar) == 11
+        @test_broken minimum(gvar) == 11
+        @test maximum(svar) == scalar
+        @test maximum(avar) == 23
+        @test_broken maximum(gvar) == 23
+
         err = close(engine)
         @test err ≡ error_none
+
     end
+
 
     # Test various versions of finalizing the Adios object
     if pass == 1
-        err = afinalize(adios)
+        err = adios_finalize(adios)
         @test err ≡ error_none
-        err = afinalize(adios)
+        err = adios_finalize(adios)
         @test err ≡ error_none
     elseif pass == 2
         finalize(adios)

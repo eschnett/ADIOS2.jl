@@ -151,27 +151,27 @@ finalized by calling `finalize(adios)`.
 """
 mutable struct Adios
     ptr::Ptr{Cvoid}
-    Adios(ptr) = finalizer(afinalize, new(ptr))
+    Adios(ptr) = finalizer(adios_finalize, new(ptr))
 end
 Adios() = Adios(C_NULL)
 
-export init_mpi
+export adios_init_mpi
 """
-    adios = init_mpi(MPI.Comm)
+    adios = adios_init_mpi(MPI.Comm)
     adios::Union{Adios,Nothing}
 
 Starting point for MPI apps. Creates an ADIOS handler. MPI collective
 and it calls `MPI_Comm_dup`.
 """
-function init_mpi(comm::MPI.Comm)
+function adios_init_mpi(comm::MPI.Comm)
     ptr = ccall((:adios2_init_mpi, libadios2_c_mpi), Ptr{Cvoid},
                 (MPI.MPI_Comm,), comm)
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
 
-export init_serial
+export adios_init_serial
 """
-    adios = init_serial()
+    adios = adios_init_serial()
     adios::Union{Adios,Nothing}
 
 Initialize an Adios struct in a serial, non-MPI application. Doesn’t
@@ -180,7 +180,7 @@ require a runtime config file.
 See also the [ADIOS2
 documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv418adios2_init_serialv).
 """
-function init_serial()
+function adios_init_serial()
     ptr = ccall((:adios2_init_serial, libadios2_c), Ptr{Cvoid}, ())
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
@@ -201,9 +201,9 @@ function declare_io(adios::Adios, name::AbstractString)
     return ptr == C_NULL ? nothing : AIO(ptr)
 end
 
-export afinalize
+export adios_finalize
 """
-    err = afinalize(adios::Adios)
+    err = adios_finalize(adios::Adios)
     err::Error
 
 Finalize the ADIOS context `adios`. It is usually not necessary to
@@ -216,7 +216,7 @@ the Adios object is garbage collected.
 See also the [ADIOS2
 documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv415adios2_finalizeP12adios2_adios)
 """
-function afinalize(adios::Adios)
+function adios_finalize(adios::Adios)
     adios.ptr == C_NULL && return error_none
     err = ccall((:adios2_finalize, libadios2_c), Cint, (Ptr{Cvoid},), adios.ptr)
     adios.ptr = C_NULL
@@ -264,6 +264,9 @@ function define_variable(io::AIO, name::AbstractString, type::Type,
                          constant_dims::Bool=false)
     ndims = max(length(maybe(shape, ())), length(maybe(start, ())),
                 length(maybe(count, ())))
+    @assert all(len -> len == 0 || len == ndims,
+                [length(maybe(shape, ())), length(maybe(start, ())),
+                 length(maybe(count, ()))])
     ptr = ccall((:adios2_define_variable, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint, Csize_t, Ptr{Csize_t}, Ptr{Csize_t},
                  Ptr{Csize_t}, Cint), io.ptr, name, adios_type(type), ndims,
@@ -334,8 +337,8 @@ end
 
  Open an Engine to start heavy-weight input/output operations.
 
-In MPI version reuses the communicator from [`init_mpi`](@ref). MPI
-Collective function as it calls `MPI_Comm_dup`.
+In MPI version reuses the communicator from [`adios_init_mpi`](@ref).
+MPI Collective function as it calls `MPI_Comm_dup`.
 
 # Arguments
 - `io`: engine owner
@@ -360,14 +363,14 @@ struct Variable
     ptr::Ptr{Cvoid}
 end
 
-export variable_name
+export name
 """
-    name = variable_name(variable::Variable)
+    name = name(variable::Variable)
     name::Union{Nothing,String}
 
 Retrieve variable name.
 """
-function variable_name(variable::Variable)
+function name(variable::Variable)
     size = Ref{Csize_t}()
     err = ccall((:adios2_variable_name, libadios2_c), Cint,
                 (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
@@ -381,14 +384,14 @@ function variable_name(variable::Variable)
     return name
 end
 
-export variable_type
+export type
 """
-    type = variable_type(variable::Variable)
+    type = type(variable::Variable)
     type::Union{Nothing,Type}
 
 Retrieve variable type.
 """
-function variable_type(variable::Variable)
+function type(variable::Variable)
     type = Ref{Cint}()
     err = ccall((:adios2_variable_type, libadios2_c), Cint,
                 (Ref{Cint}, Ptr{Cvoid}), type, variable.ptr)
@@ -396,36 +399,36 @@ function variable_type(variable::Variable)
     return julia_type(AType(type[]))
 end
 
-export variable_type_string
-"""
-    type_string = variable_type(variable::Variable)
-    type_string::Union{Nothing,String}
+# export type_string
+# """
+#     type_string = variable_type_string(variable::Variable)
+#     type_string::Union{Nothing,String}
+# 
+# Retrieve variable type in string form "char", "unsigned long", etc.
+# This reports C type names.
+# """
+# function type_string(variable::Variable)
+#     size = Ref{Csize_t}()
+#     err = ccall((:adios2_variable_type_string, libadios2_c), Cint,
+#                 (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
+#                 variable.ptr)
+#     Error(err) ≠ error_none && return nothing
+#     type = '\0'^size[]
+#     err = ccall((:adios2_variable_type_string, libadios2_c), Cint,
+#                 (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), name, size,
+#                 variable.ptr)
+#     Error(err) ≠ error_none && return nothing
+#     return type
+# end
 
-Retrieve variable type in string form "char", "unsigned long", etc.
-This reports C type names.
+export shapeid
 """
-function variable_type_string(variable::Variable)
-    size = Ref{Csize_t}()
-    err = ccall((:adios2_variable_type_string, libadios2_c), Cint,
-                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
-                variable.ptr)
-    Error(err) ≠ error_none && return nothing
-    type = '\0'^size[]
-    err = ccall((:adios2_variable_type_string, libadios2_c), Cint,
-                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), name, size,
-                variable.ptr)
-    Error(err) ≠ error_none && return nothing
-    return type
-end
-
-export variable_shapeid
-"""
-    shapeid = variable_shapeid(variable::Variable)
+    shapeid = shapeid(variable::Variable)
     shapeid::Union{Nothing,ShapeId}
 
 Retrieve variable shapeid.
 """
-function variable_shapeid(variable::Variable)
+function shapeid(variable::Variable)
     shapeid = Ref{Cint}()
     err = ccall((:adios2_variable_shapeid, libadios2_c), Cint,
                 (Ref{Cint}, Ptr{Cvoid}), shapeid, variable.ptr)
@@ -433,73 +436,71 @@ function variable_shapeid(variable::Variable)
     return ShapeId(shapeid[])
 end
 
-export variable_ndims
 """
-    ndims = variable_ndims(variable::Variable)
-    ndims::Union{Nothing,Int}
+    var_ndims = ndims(variable::Variable)
+    var_ndims::Union{Nothing,Int}
 
 Retrieve current variable number of dimensions.
 """
-function variable_ndims(variable::Variable)
+function Base.ndims(variable::Variable)
     ndims = Ref{Csize_t}()
     err = ccall((:adios2_variable_ndims, libadios2_c), Cint,
-                (Ref{Cint}, Ptr{Cvoid}), ndims, variable.ptr)
+                (Ref{Csize_t}, Ptr{Cvoid}), ndims, variable.ptr)
     Error(err) ≠ error_none && return nothing
     return Int(ndims[])
 end
 
-export variable_shape
+export shape
 """
-    shape = variable_shape(variable::Variable)
-    shape::Union{Nothing,CartesianIndex}
+    var_shape = shape(variable::Variable)
+    var_shape::Union{Nothing,CartesianIndex}
 
 Retrieve current variable shape.
 """
-function variable_shape(variable::Variable)
-    ndims = variable_ndims(variable)
-    shape = Array{Csize_t}(undef, ndims)
+function shape(variable::Variable)
+    D = ndims(variable)
+    shape = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_shape, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), shape, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(shape[]...)
+    return CartesianIndex(shape...)
 end
 
-export variable_start
+export start
 """
-    start = variable_start(variable::Variable)
-    start::Union{Nothing,CartesianIndex}
+    var_start = start(variable::Variable)
+    var_start::Union{Nothing,CartesianIndex}
 
 Retrieve current variable start.
 """
-function variable_start(variable::Variable)
-    ndims = variable_ndims(variable)
-    start = Array{Csize_t}(undef, ndims)
+function start(variable::Variable)
+    D = ndims(variable)
+    start = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_start, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), start, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(start[]...)
+    return CartesianIndex(start...)
 end
 
-export variable_count
 """
-    count = variable_count(variable::Variable)
-    count::Union{Nothing,CartesianIndex}
+    var_count = count(variable::Variable)
+    var_count::Union{Nothing,CartesianIndex}
 
 Retrieve current variable count.
 """
-function variable_count(variable::Variable)
-    ndims = variable_ndims(variable)
-    count = Array{Csize_t}(undef, ndims)
+function Base.count(variable::Variable)
+    D = ndims(variable)
+    count = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_count, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), count, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(count[])
+    return CartesianIndex(count...)
 end
 
-export variable_steps_start
+export steps_start
 """
-    steps_start = variable_steps_start(variable::Variable)
-    steps_start::Union{Nothing,Int}
+    var_steps_start = steps_start(variable::Variable)
+    var_steps_start::Union{Nothing,Int}
 
 Read API, get available steps start from available steps count (e.g.
 in a file for a variable).
@@ -507,7 +508,7 @@ in a file for a variable).
 This returns the absolute first available step, don't use with
 `adios2_set_step_selection` as inputs are relative, use `0` instead.
 """
-function variable_steps_start(variable::Variable)
+function steps_start(variable::Variable)
     steps_start = Ref{Csize_t}()
     err = ccall((:adios2_variable_steps_start, libadios2_c), Cint,
                 (Ref{Csize_t}, Ptr{Cvoid}), steps_start, variable.ptr)
@@ -515,15 +516,15 @@ function variable_steps_start(variable::Variable)
     return Int(steps_start[])
 end
 
-export variable_steps
+export steps
 """
-    steps = variable_steps(variable::Variable)
-    steps::Union{Nothing,Int}
+    var_steps = steps(variable::Variable)
+    var_steps::Union{Nothing,Int}
 
 Read API, get available steps count from available steps count (e.g.
 in a file for a variable). Not necessarily contiguous.
 """
-function variable_steps(variable::Variable)
+function steps(variable::Variable)
     steps = Ref{Csize_t}()
     err = ccall((:adios2_variable_steps, libadios2_c), Cint,
                 (Ref{Csize_t}, Ptr{Cvoid}), steps, variable.ptr)
@@ -531,15 +532,15 @@ function variable_steps(variable::Variable)
     return Int(steps[])
 end
 
-export variable_selection_size
+export selection_size
 """
-    selection_size = variable_selection_size(variable::Variable)
-    selection_size::Union{Nothing,Int}
+    var_selection_size = selection_size(variable::Variable)
+    var_selection_size::Union{Nothing,Int}
 
 Return the minimum required allocation (in number of elements of a
 certain type, not bytes) for the current selection.
 """
-function variable_selection_size(variable::Variable)
+function selection_size(variable::Variable)
     selection_size = Ref{Csize_t}()
     err = ccall((:adios2_variable_selection_size, libadios2_c), Cint,
                 (Ref{Csize_t}, Ptr{Cvoid}), selection_size, variable.ptr)
@@ -547,36 +548,32 @@ function variable_selection_size(variable::Variable)
     return Int(selection_size[])
 end
 
-export variable_min
 """
-    varmin = variable_min(variable::Variable)
-    varmin::Union{Nothing,T}
+    var_min = minimum(variable::Variable)
+    var_min::Union{Nothing,T}
 
 Read mode only: return the absolute minimum for variable.
 """
-function variable_min(variable::Variable)
-    atype = variable_type(variable)
-    atype ≡ nothing && return nothing
-    jtype = julia_type(atype)
-    varmin = Ref{jtype}()
+function Base.minimum(variable::Variable)
+    T = type(variable)
+    T ≡ nothing && return nothing
+    varmin = Ref{T}()
     err = ccall((:adios2_variable_min, libadios2_c), Cint,
                 (Ptr{Cvoid}, Ptr{Cvoid}), varmin, variable.ptr)
     Error(err) ≠ error_none && return nothing
     return varmin[]
 end
 
-export variable_max
 """
-    varmax = variable_max(variable::Variable)
-    varmax::Union{Nothing,T}
+    var_max = maximum(variable::Variable)
+    var_max::Union{Nothing,T}
 
 Read mode only: return the absolute maximum for variable.
 """
-function variable_max(variable::Variable)
-    atype = variable_type(variable)
-    atype ≡ nothing && return nothing
-    jtype = julia_type(atype)
-    varmax = Ref{jtype}()
+function Base.maximum(variable::Variable)
+    T = type(variable)
+    T ≡ nothing && return nothing
+    varmax = Ref{T}()
     err = ccall((:adios2_variable_max, libadios2_c), Cint,
                 (Ptr{Cvoid}, Ptr{Cvoid}), varmax, variable.ptr)
     Error(err) ≠ error_none && return nothing
