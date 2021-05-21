@@ -148,7 +148,9 @@ const filename = "$dirname/test.bp"
         attr1 = inquire_attribute(io, "attribute.p$rankstr")
         @test attr1 isa Attribute
         attrs = inquire_all_attributes(io)
-        @test Set(attrs) == Set([attr, attrarr, varattr, varattrarr])
+        @test length(attrs) ==
+              comm_size * length([attr, attrarr, varattr, varattrarr])
+        @test Set(attrs) ⊇ Set([attr, attrarr, varattr, varattrarr])
 
         # Write a file
         engine = open(io, filename, mode_write)
