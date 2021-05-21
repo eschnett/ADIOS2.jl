@@ -45,9 +45,9 @@ function define_variable(io::AIO, name::AbstractString, type::Type,
     ptr = ccall((:adios2_define_variable, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint, Csize_t, Ptr{Csize_t}, Ptr{Csize_t},
                  Ptr{Csize_t}, Cint), io.ptr, name, adios_type(type), ndims,
-                shape ≡ nothing ? C_NULL : Csize_t[Tuple(shape)...],
-                start ≡ nothing ? C_NULL : Csize_t[Tuple(start)...],
-                count ≡ nothing ? C_NULL : Csize_t[Tuple(count)...],
+                shape ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(shape))...],
+                start ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(start))...],
+                count ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(count))...],
                 constant_dims)
     return ptr == C_NULL ? nothing : Variable(ptr)
 end

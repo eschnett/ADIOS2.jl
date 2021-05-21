@@ -110,7 +110,7 @@ function shape(variable::Variable)
     err = ccall((:adios2_variable_shape, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), shape, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(shape...)
+    return CartesianIndex(reverse!(shape)...)
 end
 
 export start
@@ -126,7 +126,7 @@ function start(variable::Variable)
     err = ccall((:adios2_variable_start, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), start, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(start...)
+    return CartesianIndex(reverse!(start)...)
 end
 
 """
@@ -141,7 +141,7 @@ function Base.count(variable::Variable)
     err = ccall((:adios2_variable_count, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), count, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(count...)
+    return CartesianIndex(reverse!(count)...)
 end
 
 export steps_start
