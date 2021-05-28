@@ -70,6 +70,20 @@ end
 
 ################################################################################
 
+export adios_subgroup_names
+"""
+    groups = adios_subgroup_names(file::AdiosFile, groupname::AbstractString)
+    vars::Vector{String}
+
+List (non-recursively) all subgroups in the group `groupname` in the
+file.
+"""
+function adios_subgroup_names(file::AdiosFile, groupname::AbstractString)
+    vars = inquire_subgroups(file.io, groupname)
+    vars ≡ nothing && return String[]
+    return vars
+end
+
 export adios_define_attribute
 """
    adios_define_attribute(file::AdiosFile, name::AbstractString,
@@ -132,6 +146,20 @@ function adios_all_attribute_names(file::AdiosFile)
     attrs = inquire_all_attributes(file.io)
     attrs ≡ nothing && return String[]
     return name.(attrs)
+end
+
+export adios_group_attribute_names
+"""
+    vars = adios_group_attribute_names(file::AdiosFile, groupname::AbstractString)
+    vars::Vector{String}
+
+List (non-recursively) all attributes in the group `groupname` in the
+file.
+"""
+function adios_group_attribute_names(file::AdiosFile, groupname::AbstractString)
+    vars = inquire_group_attributes(file.io, groupname)
+    vars ≡ nothing && return String[]
+    return name.(vars)
 end
 
 export adios_attribute_data
@@ -228,6 +256,20 @@ List (recursively) all variables in the file.
 """
 function adios_all_variable_names(file::AdiosFile)
     vars = inquire_all_variables(file.io)
+    vars ≡ nothing && return String[]
+    return name.(vars)
+end
+
+export adios_group_variable_names
+"""
+    vars = adios_group_variable_names(file::AdiosFile, groupname::AbstractString)
+    vars::Vector{String}
+
+List (non-recursively) all variables in the group `groupname` in the
+file.
+"""
+function adios_group_variable_names(file::AdiosFile, groupname::AbstractString)
+    vars = inquire_group_variables(file.io, groupname)
     vars ≡ nothing && return String[]
     return name.(vars)
 end

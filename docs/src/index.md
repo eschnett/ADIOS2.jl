@@ -32,6 +32,7 @@ AIO
 define_variable
 inquire_variable
 inquire_all_variables
+inquire_group_variables
 define_attribute
 define_attribute_array
 define_variable_attribute
@@ -39,6 +40,8 @@ define_variable_attribute_array
 inquire_attribute
 inquire_variable_attribute
 inquire_all_attributes
+inquire_group_attributes
+inquire_subgroups
 open
 engine_type
 get_engine
@@ -91,12 +94,15 @@ adios_open_serial
 adios_open_mpi
 flush(file::AdiosFile)
 close(file::AdiosFile)
+adios_subgroup_names
 adios_define_attribute
 adios_all_attribute_names
+adios_group_attribute_names
 adios_attribute_data
 adios_put!
 adios_perform_puts!
 adios_all_variable_names
+adios_group_variable_names
 IORef
 isready(ioref::IORef)
 fetch(ioref::IORef)

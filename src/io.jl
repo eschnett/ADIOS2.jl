@@ -114,6 +114,30 @@ function inquire_all_variables(io::AIO)
     return variables
 end
 
+export inquire_group_variables
+"""
+    vars = inquire_group_variables(io::AIO, full_prefix::AbstractString)
+    vars::Vector{String}    
+
+List all variables in the group `full_prefix`.
+"""
+function inquire_group_variables(io::AIO, full_prefix::AbstractString)
+    c_variables = Ref{Ptr{Ptr{Cvoid}}}(C_NULL)
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_inquire_group_variables, libadios2_c), Cint,
+                (Ref{Ptr{Ptr{Cvoid}}}, Cstring, Ref{Csize_t}, Ptr{Cvoid}),
+                c_variables, full_prefix, size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    variables = Array{Variable}(undef, size[])
+    for n in 1:length(variables)
+        ptr = unsafe_load(c_variables[], n)
+        @assert ptr ≠ C_NULL
+        variables[n] = Variable(ptr, io.adios)
+    end
+    free(c_variables[])
+    return variables
+end
+
 export define_attribute
 """
     attribute = define_attribute(io::AIO, name::AbstractString, value)
@@ -246,6 +270,55 @@ function inquire_all_attributes(io::AIO)
     end
     free(c_attributes[])
     return attributes
+end
+
+export inquire_group_attributes
+"""
+    vars = inquire_group_attributes(io::AIO, full_prefix::AbstractString)
+    vars::Vector{String}    
+
+List all attributes in the group `full_prefix`.
+"""
+function inquire_group_attributes(io::AIO, full_prefix::AbstractString)
+    c_attributes = Ref{Ptr{Ptr{Cvoid}}}(C_NULL)
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_inquire_group_attributes, libadios2_c), Cint,
+                (Ref{Ptr{Ptr{Cvoid}}}, Cstring, Ref{Csize_t}, Ptr{Cvoid}),
+                c_attributes, full_prefix, size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    attributes = Array{Attribute}(undef, size[])
+    for n in 1:length(attributes)
+        ptr = unsafe_load(c_attributes[], n)
+        @assert ptr ≠ C_NULL
+        attributes[n] = Attribute(ptr, io.adios)
+    end
+    free(c_attributes[])
+    return attributes
+end
+
+export inquire_subgroups
+"""
+    groups = inquire_subgroups(io::AIO, full_prefix::AbstractString)
+    groups::Vector{String}    
+
+List all subgroups in the group `full_prefix`.
+"""
+function inquire_subgroups(io::AIO, full_prefix::AbstractString)
+    c_subgroups = Ref{Ptr{Ptr{Cchar}}}()
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_inquire_subgroups, libadios2_c), Cint,
+                (Ref{Ptr{Ptr{Cchar}}}, Cstring, Ref{Csize_t}, Ptr{Cvoid}),
+                c_subgroups, full_prefix, size, io.ptr)
+    Error(err) ≠ error_none && return nothing
+    subgroups = Array{String}(undef, size[])
+    for n in 1:length(subgroups)
+        ptr = unsafe_load(c_subgroups[], n)
+        @assert ptr ≠ C_NULL
+        subgroups[n] = unsafe_string(ptr)
+        free(ptr)
+    end
+    free(c_subgroups[])
+    return subgroups
 end
 
 """

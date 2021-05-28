@@ -374,20 +374,21 @@ if comm_rank == 0
         adios_put!(file, "v3", makearray(1, float(ℯ)))
         adios_put!(file, "v4", makearray(2, float(ℯ)))
         adios_put!(file, "v5", makearray(3, float(ℯ)))
-        adios_put!(file, "v6", makearray(4, float(ℯ)))
-        adios_put!(file, "v7", makearray(5, float(ℯ)))
+        adios_put!(file, "g1/v6", makearray(4, float(ℯ)))
+        adios_put!(file, "g1/g2/v7", makearray(5, float(ℯ)))
 
         @test shapeid(inquire_variable(file.io, "v1")) == shapeid_local_value
         @test shapeid(inquire_variable(file.io, "v2")) == shapeid_local_value # 0-dim arrays are values
         @test shapeid(inquire_variable(file.io, "v3")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v4")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v5")) == shapeid_local_array
-        @test shapeid(inquire_variable(file.io, "v6")) == shapeid_local_array
-        @test shapeid(inquire_variable(file.io, "v7")) == shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "g1/v6")) == shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "g1/g2/v7")) ==
+              shapeid_local_array
 
         adios_define_attribute(file, "v4/a4", float(π))
         adios_define_attribute(file, "v5", "a5", [float(π)])
-        adios_define_attribute(file, "v6", "a6", [float(π), 0])
+        adios_define_attribute(file, "g1/v6", "a6", [float(π), 0])
 
         adios_perform_puts!(file)
         close(file)
@@ -396,18 +397,29 @@ if comm_rank == 0
 
     @testset "High-level read tests " begin
         file = adios_open_serial(filename2, mode_read)
+
+        @test Set(adios_subgroup_names(file, "")) == Set(["g1"])
+        @test_broken Set(adios_subgroup_names(file, "g1")) == Set(["g2"])
+        @test Set(adios_subgroup_names(file, "g1")) == Set(["/g2"]) # don't want this
+
         @test Set(adios_all_attribute_names(file)) ==
-              Set(["a1", "a2", "a3", "v4/a4", "v5/a5", "v6/a6"])
+              Set(["a1", "a2", "a3", "v4/a4", "v5/a5", "g1/v6/a6"])
+        @test Set(adios_group_attribute_names(file, "g1")) == Set()
+        @test Set(adios_group_attribute_names(file, "g1/v6")) ==
+              Set(["g1/v6/a6"])
 
         @test adios_attribute_data(file, "a1") == [float(π)]
         @test adios_attribute_data(file, "a2") == [float(π)]
         @test adios_attribute_data(file, "a3") == [float(π), 0]
         @test adios_attribute_data(file, "v4", "a4") == [float(π)]
         @test adios_attribute_data(file, "v5/a5") == [float(π)]
-        @test adios_attribute_data(file, "v6", "a6") == [float(π), 0]
+        @test adios_attribute_data(file, "g1/v6", "a6") == [float(π), 0]
 
         @test Set(adios_all_variable_names(file)) ==
-              Set(["v1", "v2", "v3", "v4", "v5", "v6", "v7"])
+              Set(["v1", "v2", "v3", "v4", "v5", "g1/v6", "g1/g2/v7"])
+        @test Set(adios_group_variable_names(file, "g1")) == Set(["g1/v6"])
+        @test Set(adios_group_variable_names(file, "g1/g2")) ==
+              Set(["g1/g2/v7"])
 
         @test_broken shapeid(inquire_variable(file.io, "v1")) ==
                      shapeid_local_value
@@ -418,8 +430,9 @@ if comm_rank == 0
         @test shapeid(inquire_variable(file.io, "v3")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v4")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v5")) == shapeid_local_array
-        @test shapeid(inquire_variable(file.io, "v6")) == shapeid_local_array
-        @test shapeid(inquire_variable(file.io, "v7")) == shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "g1/v6")) == shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "g1/g2/v7")) ==
+              shapeid_local_array
 
         @test_broken ndims(inquire_variable(file.io, "v1")) == 0
         @test ndims(inquire_variable(file.io, "v1")) == 1 # don't want this
@@ -428,8 +441,8 @@ if comm_rank == 0
         @test ndims(inquire_variable(file.io, "v3")) == 1
         @test ndims(inquire_variable(file.io, "v4")) == 2
         @test ndims(inquire_variable(file.io, "v5")) == 3
-        @test ndims(inquire_variable(file.io, "v6")) == 4
-        @test ndims(inquire_variable(file.io, "v7")) == 5
+        @test ndims(inquire_variable(file.io, "g1/v6")) == 4
+        @test ndims(inquire_variable(file.io, "g1/g2/v7")) == 5
 
         @test_broken shape(inquire_variable(file.io, "v1")) ≡ nothing
         @test shape(inquire_variable(file.io, "v1")) == CartesianIndex(1) # don't want this
@@ -438,8 +451,8 @@ if comm_rank == 0
         @test shape(inquire_variable(file.io, "v3")) ≡ nothing
         @test shape(inquire_variable(file.io, "v4")) ≡ nothing
         @test shape(inquire_variable(file.io, "v5")) ≡ nothing
-        @test shape(inquire_variable(file.io, "v6")) ≡ nothing
-        @test shape(inquire_variable(file.io, "v7")) ≡ nothing
+        @test shape(inquire_variable(file.io, "g1/v6")) ≡ nothing
+        @test shape(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
 
         @test_broken start(inquire_variable(file.io, "v1")) ≡ nothing
         @test start(inquire_variable(file.io, "v1")) == CartesianIndex(0) # don't want this
@@ -448,8 +461,8 @@ if comm_rank == 0
         @test start(inquire_variable(file.io, "v3")) ≡ nothing
         @test start(inquire_variable(file.io, "v4")) ≡ nothing
         @test start(inquire_variable(file.io, "v5")) ≡ nothing
-        @test start(inquire_variable(file.io, "v6")) ≡ nothing
-        @test start(inquire_variable(file.io, "v7")) ≡ nothing
+        @test start(inquire_variable(file.io, "g1/v6")) ≡ nothing
+        @test start(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
 
         @test_broken count(inquire_variable(file.io, "v1")) ≡ nothing
         @test count(inquire_variable(file.io, "v1")) == CartesianIndex(1) # don't want this
@@ -458,9 +471,9 @@ if comm_rank == 0
         @test count(inquire_variable(file.io, "v3")) == CartesianIndex(1)
         @test count(inquire_variable(file.io, "v4")) == CartesianIndex(1, 1)
         @test count(inquire_variable(file.io, "v5")) == CartesianIndex(1, 1, 1)
-        @test count(inquire_variable(file.io, "v6")) ==
+        @test count(inquire_variable(file.io, "g1/v6")) ==
               CartesianIndex(1, 1, 1, 1)
-        @test count(inquire_variable(file.io, "v7")) ==
+        @test count(inquire_variable(file.io, "g1/g2/v7")) ==
               CartesianIndex(1, 1, 1, 1, 1)
 
         v1 = adios_get(file, "v1")
@@ -478,8 +491,8 @@ if comm_rank == 0
         @test fetch(v4) == makearray(2, float(ℯ))
         @test isready(v2)
         v5 = adios_get(file, "v5")
-        v6 = adios_get(file, "v6")
-        v7 = adios_get(file, "v7")
+        v6 = adios_get(file, "g1/v6")
+        v7 = adios_get(file, "g1/g2/v7")
         @test !isready(v5)
         adios_perform_gets(file)
         @test isready(v5)
