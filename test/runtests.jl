@@ -293,8 +293,8 @@ const filename = "$dirname/test.bp"
         @test type(gvar′) == eltype(garray)
         @test shapeid(gvar′) == shapeid_global_array
         @test ndims(gvar′) == ndims(garray)
-        @test shape(gvar′) == CartesianIndex(size(garray))
-        @test start(gvar′) == CartesianIndex(0, 0)
+        @test shape(gvar′) == CartesianIndex((1, comm_size) .* size(garray))
+        @test start(gvar′) == CartesianIndex((0, comm_rank) .* size(garray))
         @test count(gvar′) == CartesianIndex(size(garray))
 
         value′ = Ref(value + 1)
@@ -328,7 +328,7 @@ const filename = "$dirname/test.bp"
         @test maximum(vvar) == value
         @test maximum(lvar) == lvalue
         @test maximum(avar) == 23
-        @test maximum(gvar) == 23
+        @test maximum(gvar) == 20 + comm_size * 3
 
         err = close(engine)
         @test err ≡ error_none
