@@ -8,6 +8,8 @@ Holds a C pointer `adios2_io *`.
 """
 struct AIO
     ptr::Ptr{Cvoid}
+    adios::Adios
+    AIO(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
 export define_variable
@@ -33,15 +35,21 @@ Define a variable within `io`.
   shape, start, count will change after definition
 """
 function define_variable(io::AIO, name::AbstractString, type::Type,
+                         shape::LocalValue)
+    ptr = ccall((:adios2_define_variable, libadios2_c), Ptr{Cvoid},
+                (Ptr{Cvoid}, Cstring, Cint, Csize_t, Ptr{Csize_t}, Ptr{Csize_t},
+                 Ptr{Csize_t}, Cint), io.ptr, name, adios_type(type), 1,
+                Ref(local_value_dim), C_NULL, C_NULL, true)
+    return ptr == C_NULL ? nothing : Variable(ptr, io.adios)
+end
+function define_variable(io::AIO, name::AbstractString, type::Type,
                          shape::Union{Nothing,CartesianIndex}=nothing,
                          start::Union{Nothing,CartesianIndex}=nothing,
-                         count::Union{Nothing,CartesianIndex}=nothing,
+                         count::Union{Nothing,CartesianIndex}=nothing;
                          constant_dims::Bool=false)
     ndims = max(length(maybe(shape, ())), length(maybe(start, ())),
                 length(maybe(count, ())))
-    @assert all(len -> len == 0 || len == ndims,
-                [length(maybe(shape, ())), length(maybe(start, ())),
-                 length(maybe(count, ()))])
+    @assert all(x -> x ≡ nothing || length(x) == ndims, [shape, start, count])
     ptr = ccall((:adios2_define_variable, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint, Csize_t, Ptr{Csize_t}, Ptr{Csize_t},
                  Ptr{Csize_t}, Cint), io.ptr, name, adios_type(type), ndims,
@@ -49,16 +57,16 @@ function define_variable(io::AIO, name::AbstractString, type::Type,
                 start ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(start))...],
                 count ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(count))...],
                 constant_dims)
-    return ptr == C_NULL ? nothing : Variable(ptr)
+    return ptr == C_NULL ? nothing : Variable(ptr, io.adios)
 end
 
-function define_variable(io::AIO, name::AbstractString, var::Number)
-    return define_variable(io, name, typeof(var))
+function define_variable(io::AIO, name::AbstractString, var::AdiosType)
+    return define_variable(io, name, typeof(var), LocalValue())
 end
 function define_variable(io::AIO, name::AbstractString,
-                         arr::AbstractArray{<:Number})
+                         arr::AbstractArray{<:AdiosType})
     return define_variable(io, name, eltype(arr), nothing, nothing,
-                           CartesianIndex(size(arr)))
+                           CartesianIndex(size(arr)); constant_dims=true)
 end
 
 export inquire_variable
@@ -75,7 +83,7 @@ Retrieve a variable handler within current `io` handler.
 function inquire_variable(io::AIO, name::AbstractString)
     ptr = ccall((:adios2_inquire_variable, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring), io.ptr, name)
-    return ptr == C_NULL ? nothing : Variable(ptr)
+    return ptr == C_NULL ? nothing : Variable(ptr, io.adios)
 end
 
 export inquire_all_variables
@@ -100,7 +108,7 @@ function inquire_all_variables(io::AIO)
     for n in 1:length(variables)
         ptr = unsafe_load(c_variables[], n)
         @assert ptr ≠ C_NULL
-        variables[n] = Variable(ptr)
+        variables[n] = Variable(ptr, io.adios)
     end
     free(c_variables[])
     return variables
@@ -113,12 +121,12 @@ export define_attribute
 
 Define an attribute value inside `io`.
 """
-function define_attribute(io::AIO, name::AbstractString, value)
+function define_attribute(io::AIO, name::AbstractString, value::AdiosType)
     T = typeof(value)
     ptr = ccall((:adios2_define_attribute, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}), io.ptr, name,
                 adios_type(T), Ref(value))
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export define_attribute_array
@@ -130,12 +138,12 @@ export define_attribute_array
 Define an attribute array inside `io`.
 """
 function define_attribute_array(io::AIO, name::AbstractString,
-                                values::AbstractVector)
+                                values::AbstractVector{<:AdiosType})
     T = eltype(values)
     ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr, name,
                 adios_type(T), values, length(values))
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export define_variable_attribute
@@ -148,7 +156,8 @@ export define_variable_attribute
 Define an attribute single value associated to an existing variable by
 its name.
 """
-function define_variable_attribute(io::AIO, name::AbstractString, value,
+function define_variable_attribute(io::AIO, name::AbstractString,
+                                   value::AdiosType,
                                    variable_name::AbstractString,
                                    separator::AbstractString="/")
     T = typeof(value)
@@ -156,7 +165,7 @@ function define_variable_attribute(io::AIO, name::AbstractString, value,
                 (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Cstring, Cstring),
                 io.ptr, name, adios_type(T), Ref(value), variable_name,
                 separator)
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export define_variable_attribute_array
@@ -171,7 +180,7 @@ Define an attribute array associated to an existing variable by its
 name.
 """
 function define_variable_attribute_array(io::AIO, name::AbstractString,
-                                         values::AbstractVector,
+                                         values::AbstractVector{<:AdiosType},
                                          variable_name::AbstractString,
                                          separator::AbstractString="/")
     T = eltype(values)
@@ -180,7 +189,7 @@ function define_variable_attribute_array(io::AIO, name::AbstractString,
                 (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t, Cstring,
                  Cstring), io.ptr, name, adios_type(T), values, length(values),
                 variable_name, separator)
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export inquire_attribute
@@ -193,7 +202,7 @@ Return a handler to a previously defined attribute by name.
 function inquire_attribute(io::AIO, name::AbstractString)
     ptr = ccall((:adios2_inquire_attribute, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring), io.ptr, name)
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export inquire_variable_attribute
@@ -211,7 +220,7 @@ function inquire_variable_attribute(io::AIO, name::AbstractString,
     ptr = ccall((:adios2_inquire_variable_attribute, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cstring, Cstring), io.ptr, name,
                 variable_name, separator)
-    return ptr == C_NULL ? nothing : Attribute(ptr)
+    return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
 export inquire_all_attributes
@@ -233,7 +242,7 @@ function inquire_all_attributes(io::AIO)
     for n in 1:length(attributes)
         ptr = unsafe_load(c_attributes[], n)
         @assert ptr ≠ C_NULL
-        attributes[n] = Attribute(ptr)
+        attributes[n] = Attribute(ptr, io.adios)
     end
     free(c_attributes[])
     return attributes
@@ -256,7 +265,7 @@ MPI Collective function as it calls `MPI_Comm_dup`.
 function Base.open(io::AIO, name::AbstractString, mode::Mode)
     ptr = ccall((:adios2_open, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring, Cint), io.ptr, name, Cint(mode))
-    return ptr == C_NULL ? nothing : Engine(ptr)
+    return ptr == C_NULL ? nothing : Engine(ptr, io.adios)
 end
 
 export engine_type
@@ -286,5 +295,5 @@ export get_engine
 function get_engine(io::AIO, name::AbstractString)
     ptr = ccall((:adios2_get_engin, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring), io.ptr, name)
-    return ptr == C_NULL ? nothing : Engine(ptr)
+    return ptr == C_NULL ? nothing : Engine(ptr, io.adios)
 end

@@ -70,6 +70,16 @@ const julia_types = Type[String, Float32, Float64, Complex{Float32},
                          UInt16, UInt32, UInt64]
 julia_type(type::AType) = julia_types[Int(type) + 1]
 
+export AdiosType
+"""
+    const AdiosType = Union{Float32,Float64,Complex{Float32},Complex{Float64},Int8,
+                            Int16,Int32,Int64,UInt8,UInt16,UInt32,UInt64}
+
+A Union of all scalar types supported in ADIOS files.
+"""
+const AdiosType = Union{Float32,Float64,Complex{Float32},Complex{Float64},Int8,
+                        Int16,Int32,Int64,UInt8,UInt16,UInt32,UInt64}
+
 export Mode
 export mode_undefined, mode_write, mode_read, mode_append, mode_deferred,
        mode_sync
@@ -117,7 +127,12 @@ export shapeid_unknown, shapeid_global_value, shapeid_global_array,
     shapeid_local_value = 3
     shapeid_local_array = 4
 end
-const shapeid_strings = String["unknown", "global_value", "global_array",
-                               "joined_array", "local_value", "local_array"]
+const shapeid_strings = String["shapeid_unknown", "shapeid_global_value",
+                               "shapeid_global_array", "shapeid_joined_array",
+                               "shapeid_local_value", "shapeid_local_array"]
 shapeid_string(shapeid::ShapeId) = shapeid_strings[Int(shapeid) + 2]
 Base.show(io::IO, shapeid::ShapeId) = print(io, shapeid_string(shapeid))
+
+const local_value_dim = typemax(Culonglong) - 2
+export LocalValue
+struct LocalValue end

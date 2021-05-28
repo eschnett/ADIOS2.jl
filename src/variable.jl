@@ -8,12 +8,14 @@ Holds a C pointer `adios2_variable *`.
 """
 struct Variable
     ptr::Ptr{Cvoid}
+    adios::Adios
+    Variable(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
 export name
 """
-    name = name(variable::Variable)
-    name::Union{Nothing,String}
+    var_name = name(variable::Variable)
+    var_name::Union{Nothing,String}
 
 Retrieve variable name.
 """
@@ -33,8 +35,8 @@ end
 
 export type
 """
-    type = type(variable::Variable)
-    type::Union{Nothing,Type}
+    var_type = type(variable::Variable)
+    var_type::Union{Nothing,Type}
 
 Retrieve variable type.
 """
@@ -70,8 +72,8 @@ end
 
 export shapeid
 """
-    shapeid = shapeid(variable::Variable)
-    shapeid::Union{Nothing,ShapeId}
+    var_shapeid = shapeid(variable::Variable)
+    var_shapeid::Union{Nothing,ShapeId}
 
 Retrieve variable shapeid.
 """
@@ -90,6 +92,9 @@ end
 Retrieve current variable number of dimensions.
 """
 function Base.ndims(variable::Variable)
+    var_shapeid = shapeid(variable)
+    var_shapeid ≡ nothing && return nothing
+    var_shapeid == shapeid_local_value && return 0
     ndims = Ref{Csize_t}()
     err = ccall((:adios2_variable_ndims, libadios2_c), Cint,
                 (Ref{Csize_t}, Ptr{Cvoid}), ndims, variable.ptr)
@@ -105,6 +110,9 @@ export shape
 Retrieve current variable shape.
 """
 function shape(variable::Variable)
+    var_shapeid = shapeid(variable)
+    var_shapeid ≡ nothing && return nothing
+    var_shapeid ∈ (shapeid_local_value, shapeid_local_array) && return nothing
     D = ndims(variable)
     shape = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_shape, libadios2_c), Cint,
@@ -121,6 +129,9 @@ export start
 Retrieve current variable start.
 """
 function start(variable::Variable)
+    var_shapeid = shapeid(variable)
+    var_shapeid ≡ nothing && return nothing
+    var_shapeid ∈ (shapeid_local_value, shapeid_local_array) && return nothing
     D = ndims(variable)
     start = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_start, libadios2_c), Cint,
@@ -136,6 +147,9 @@ end
 Retrieve current variable count.
 """
 function Base.count(variable::Variable)
+    var_shapeid = shapeid(variable)
+    var_shapeid ≡ nothing && return nothing
+    var_shapeid == shapeid_local_value && return CartesianIndex()
     D = ndims(variable)
     count = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_count, libadios2_c), Cint,

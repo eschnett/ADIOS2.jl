@@ -1,7 +1,7 @@
 name = "ADIOS2"
 uuid = "e0ce9d3b-0dbd-416f-8264-ccca772f60ec"
 authors = ["Erik Schnetter <schnetter@gmail.com>"]
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 ADIOS2_jll = "44b1415a-b224-5c99-9168-ff4febb5f37f"

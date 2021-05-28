@@ -58,7 +58,7 @@ documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_C
 function declare_io(adios::Adios, name::AbstractString)
     ptr = ccall((:adios2_declare_io, libadios2_c), Ptr{Cvoid},
                 (Ptr{Cvoid}, Cstring), adios.ptr, name)
-    return ptr == C_NULL ? nothing : AIO(ptr)
+    return ptr == C_NULL ? nothing : AIO(ptr, adios)
 end
 
 export adios_finalize

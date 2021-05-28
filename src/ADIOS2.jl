@@ -21,4 +21,6 @@ include("variable.jl")
 include("attribute.jl")
 include("engine.jl")
 
+include("highlevel.jl")
+
 end
