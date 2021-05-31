@@ -326,7 +326,7 @@ end
 export adios_get
 """
     ioref = adios_get(file::AdiosFile, name::AbstractString)
-    ioref::IORef
+    ioref::Union{Nothing,IORef}
 
 Schedule reading a variable from a file.
 
