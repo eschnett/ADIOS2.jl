@@ -46,6 +46,7 @@ const filename = "$dirname/test.bp"
         @test lval isa Variable
         variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
 
+        # String arrays are not supported
         if T ≢ String
             for D in 1:3, len in 0:2
                 # size
@@ -171,9 +172,6 @@ const filename = "$dirname/test.bp"
     @test attr0 isa Nothing
 
     for ((D, len, varname, T), (nm, attr)) in attributes
-        # String attributes cannot be read (see
-        # <https://github.com/ornladios/ADIOS2/issues/2735>)
-        T ≡ String && continue
         attr1 = inquire_attribute(io, nm)
         @test attr1 isa Attribute
         @test nm == name(attr1)
@@ -182,12 +180,17 @@ const filename = "$dirname/test.bp"
             @test is_value(attr)
             @test size(attr) == 1
             val = T ≡ String ? "42" : T(42)
-            # Attributes are always read back as arrays
-            @test data(attr) == [val]
+            if !(data(attr) == val)
+                @show D len varname T nm
+            end
+            @test data(attr) == val
         else
             @test !is_value(attr)
             @test size(attr) == len
             vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+            if !(data(attr) == vals)
+                @show D len varname T nm
+            end
             @test data(attr) == vals
         end
     end
@@ -206,7 +209,7 @@ const filename = "$dirname/test.bp"
             @test err ≡ error_none
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
-            # Convert a tuple to a single number
+            # Construct a single number from a tuple
             ten(i, s) = i == () ? s : ten(i[2:end], 10s + i[1])
             # Convert to type `T`
             function mkT(T, s)
@@ -275,6 +278,7 @@ GC.gc(true)
         @test lval isa Variable
         variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
 
+        # String arrays are not supported
         if T ≢ String
             for D in 1:3, len in 0:2
                 # Global array
@@ -294,7 +298,11 @@ GC.gc(true)
 
     # Check variables
     allvars = inquire_all_variables(io)
-    @test Set(allvars) == Set([var for (name, var) in values(variables)])
+    if comm_size == 1
+        @test Set(allvars) == Set([var for (name, var) in values(variables)])
+    else
+        @test Set(allvars) ⊇ Set([var for (name, var) in values(variables)])
+    end
 
     var0 = inquire_variable(io, "not a variable")
     @test var0 isa Nothing
@@ -306,7 +314,6 @@ GC.gc(true)
         @test type(var1) == T
         if si == shapeid_global_value
             # Global values are re-interpreted as global arrays
-            #TODO @test shapeid(var1) == shapeid_global_array
             @test shapeid(var1) == si
             @test ndims(var1) == 0
             @test shape(var1) == CartesianIndex()
@@ -314,11 +321,6 @@ GC.gc(true)
             @test count(var1) == CartesianIndex()
         elseif si == shapeid_local_value
             # Local values are re-interpreted as global arrays
-            # @test shapeid(var1) == si
-            # @test ndims(var1) == 0
-            # @test shape(var1) ≡ nothing
-            # @test start(var1) ≡ nothing
-            # @test count(var1) ≡ nothing
             @test shapeid(var1) == shapeid_global_array
             @test ndims(var1) == 1
             @test shape(var1) == CartesianIndex(1)
@@ -342,7 +344,29 @@ GC.gc(true)
                 @test shapeid(var1) == si
                 @test ndims(var1) == D
                 @test shape(var1) == sh
-                @test start(var1) == st
+                if comm_size == 1
+                    # With multiple processes, there are multiple chunks, and they each have a different starting offset
+                    @test start(var1) == st
+                end
+                if !(count(var1) == co)
+                    MPI.Barrier(comm)
+                    for i in 0:(comm_size - 1)
+                        if comm_rank == i
+                            @show comm_size comm_rank
+                            @show si D len T nm var
+                            @show sz cs cr sh st co
+                            @show shape(var1) start(var1) count(var1)
+                            for i in 0:(comm_size - 1)
+                                set_block_selection(var1, i)
+                                @show i shape(var1) start(var1) count(var1)
+                            end
+                        end
+                        MPI.Barrier(comm)
+                    end
+                    error("need to select block to read variable")
+                    error("need to correct index order")
+                    @assert count(var1) == co
+                end
                 @test count(var1) == co
             end
         elseif si == shapeid_local_array
@@ -415,10 +439,6 @@ GC.gc(true)
     @test attr0 isa Nothing
 
     for ((D, len, varname, T), (nm, attr)) in attributes
-        # String attributes cannot be read (see
-        # <https://github.com/ornladios/ADIOS2/issues/2735>)
-        T ≡ String && continue
-
         val = T ≡ String ? "42" : T(42)
         val::T
 
@@ -427,20 +447,22 @@ GC.gc(true)
         @test nm == name(attr1)
         @test type(attr1) == T
         if D == -1
-            # Scalar attributes arrays are re-interpreted as length-1 arrays
             @test is_value(attr)
             @test size(attr) == 1
-            @test data(attr) == [val]
+            @test data(attr) == val
         else
-            # Length-1 attribute arrays are mis-interpreted as values
-            if len == 1
+            # Length-1 non-string attribute arrays are mis-interpreted as values
+            if T ≢ String && len == 1
                 @test is_value(attr)
+                @test size(attr) == len
+                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                @test [data(attr)] == vals
             else
                 @test !is_value(attr)
+                @test size(attr) == len
+                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                @test data(attr) == vals
             end
-            @test size(attr) == len
-            vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
-            @test data(attr) == vals
         end
     end
 
@@ -482,7 +504,7 @@ GC.gc(true)
             end
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
-            # Convert a tuple to a single number
+            # Construct a single number from a tuple
             ten(i, s) = i == () ? s : ten(i[2:end], 10s + i[1])
             # Convert to type `T`
             function mkT(T, s)

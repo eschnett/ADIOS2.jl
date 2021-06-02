@@ -88,15 +88,13 @@ function data(attribute::Attribute)
     T = type(attribute)
     T ≡ nothing && return nothing
     @assert T != Union{}
-    # isval = is_value(attribute)
-    # isval ≡ nothing && return nothing
+    isval = is_value(attribute)
+    isval ≡ nothing && return nothing
     sz = size(attribute)
     sz ≡ nothing && return nothing
     tp = type(attribute)
     tp ≡ nothing && return nothing
     if tp ≡ String
-        isval = is_value(attribute)
-        isval ≡ nothing && return nothing
         if isval
             buffer = fill(Cchar(0), string_array_element_max_size)
             out_sz = Ref{Csize_t}()
@@ -108,10 +106,9 @@ function data(attribute::Attribute)
             data = unsafe_string(pointer(buffer))
             return data
         else
-            arrays = Vector{Cchar}[Array{Cchar}(undef,
-                                                string_array_element_max_size)
-                                   for i in 1:sz]
-            buffers = pointer.(arrays)::Vector{Ptr{Cchar}}
+            arrays = [Array{Cchar}(undef, string_array_element_max_size)
+                      for i in 1:sz]
+            buffers = [pointer(array) for array in arrays]::Vector{Ptr{Cchar}}
             out_sz = Ref{Csize_t}()
             err = ccall((:adios2_attribute_data, libadios2_c), Cint,
                         (Ptr{Ptr{Cchar}}, Ref{Csize_t}, Ptr{Cvoid}), buffers,
@@ -119,25 +116,10 @@ function data(attribute::Attribute)
             @assert out_sz[] == sz
             Error(err) ≠ error_none && return nothing
             data = unsafe_string.(buffers)::Vector{String}
-            # Use `arrays` again to prevent it being GCed too early
+            # Use `arrays` again to ensure it is not GCed too early
             buffers .= pointer.(arrays)
             return data
         end
-        # # The C API is broken for attribute strings; we have to use
-        # # the Fortran API instead. See
-        # # <https://github.com/ornladios/ADIOS2/issues/2735>.
-        # fdata = fill(Cchar(0), sz * string_array_element_max_size)
-        # out_sz = Ref{Csize_t}()
-        # err = Ref{Cint}()
-        # ccall((:adios2_attribute_data_f2c, libadios2_c), Cvoid,
-        #       (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}, Ptr{Cint}), fdata, out_sz,
-        #       attribute.ptr, err)
-        # @assert out_sz[] == sz
-        # Error(err[]) ≠ error_none && return nothing
-        # data = String[unsafe_string(pointer(fdata) +
-        #     (i - 1) * string_array_element_max_size)
-        #               for i in 1:sz]
-        # return data
     else
         data = Array{T}(undef, sz)
         out_sz = Ref{Csize_t}()
@@ -146,9 +128,7 @@ function data(attribute::Attribute)
                     attribute.ptr)
         @assert out_sz[] == sz
         Error(err) ≠ error_none && return nothing
-        # All ADIOS2 attributes are arrays. "scalar attributes" are
-        # just arrays of size 1.
-        # isval && return data[1]
+        isval && return data[1]
         return data
     end
 end

@@ -147,9 +147,15 @@ Define an attribute value inside `io`.
 """
 function define_attribute(io::AIO, name::AbstractString, value::AdiosType)
     T = typeof(value)
-    ptr = ccall((:adios2_define_attribute, libadios2_c), Ptr{Cvoid},
-                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}), io.ptr, name,
-                adios_type(T), Ref(value))
+    if T <: AbstractString
+        ptr = ccall((:adios2_define_attribute, libadios2_c), Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Cstring), io.ptr, name,
+                    adios_type(T), value)
+    else
+        ptr = ccall((:adios2_define_attribute, libadios2_c), Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}), io.ptr, name,
+                    adios_type(T), Ref(value))
+    end
     return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
@@ -164,11 +170,13 @@ Define an attribute array inside `io`.
 function define_attribute_array(io::AIO, name::AbstractString,
                                 values::AbstractVector{<:AdiosType})
     T = eltype(values)
-    if T <: AbstractString && typeof(values) ≢ Vector{String}
-        cvalues = Vector{String}(values)
+    if T <: AbstractString
+        cvalues = pointer.(values)
         ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
-                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr,
-                    name, adios_type(T), cvalues, length(values))
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Ptr{Cchar}}, Csize_t),
+                    io.ptr, name, adios_type(T), cvalues, length(values))
+        # Use `values` again to ensure it is not GCed too early
+        cvalues = pointer.(values)
     else
         ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
                     (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr,
@@ -192,10 +200,19 @@ function define_variable_attribute(io::AIO, name::AbstractString,
                                    variable_name::AbstractString,
                                    separator::AbstractString="/")
     T = typeof(value)
-    ptr = ccall((:adios2_define_variable_attribute, libadios2_c), Ptr{Cvoid},
-                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Cstring, Cstring),
-                io.ptr, name, adios_type(T), Ref(value), variable_name,
-                separator)
+    if T <: AbstractString
+        ptr = ccall((:adios2_define_variable_attribute, libadios2_c),
+                    Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Cstring, Cstring, Cstring),
+                    io.ptr, name, adios_type(T), value, variable_name,
+                    separator)
+    else
+        ptr = ccall((:adios2_define_variable_attribute, libadios2_c),
+                    Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Cstring, Cstring),
+                    io.ptr, name, adios_type(T), Ref(value), variable_name,
+                    separator)
+    end
     return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
@@ -215,11 +232,22 @@ function define_variable_attribute_array(io::AIO, name::AbstractString,
                                          variable_name::AbstractString,
                                          separator::AbstractString="/")
     T = eltype(values)
-    ptr = ccall((:adios2_define_variable_attribute_array, libadios2_c),
-                Ptr{Cvoid},
-                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t, Cstring,
-                 Cstring), io.ptr, name, adios_type(T), values, length(values),
-                variable_name, separator)
+    if T <: AbstractString
+        cvalues = pointer.(values)
+        ptr = ccall((:adios2_define_variable_attribute_array, libadios2_c),
+                    Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Ptr{Cchar}}, Csize_t,
+                     Cstring, Cstring), io.ptr, name, adios_type(T), cvalues,
+                    length(values), variable_name, separator)
+        # Use `values` again to ensure it is not GCed too early
+        cvalues = pointer.(values)
+    else
+        ptr = ccall((:adios2_define_variable_attribute_array, libadios2_c),
+                    Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t, Cstring,
+                     Cstring), io.ptr, name, adios_type(T), values,
+                    length(values), variable_name, separator)
+    end
     return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 

@@ -12,6 +12,17 @@ struct Variable
     Variable(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+export set_block_selection
+"""
+    set_block_selection(variable::Variable, block_id::Int)
+"""
+function set_block_selection(variable::Variable, block_id::Int)
+    err = ccall((:adios2_set_block_selection, libadios2_c), Cint,
+                (Ptr{Cvoid}, Csize_t), variable.ptr, block_id)
+    Error(err) ≠ error_none && return nothing
+    return ()
+end
+
 export name
 """
     var_name = name(variable::Variable)
