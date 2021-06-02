@@ -67,14 +67,23 @@ Call `perform_gets` to perform the actual read operations.
 
 The reference/array/pointer target must not be modified before
 `perform_gets` is called. It is most efficenty to schedule multiple
-get` operations before calling `perform_gets`.
+`get` operations before calling `perform_gets`.
 """
 function Base.get(engine::Engine, variable::Variable,
                   data::Union{Ref,Array,Ptr}, launch::Mode=mode_deferred)
     push!(engine.get_targets, data)
-    err = ccall((:adios2_get, libadios2_c), Cint,
-                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
-                variable.ptr, data, Cint(launch))
+    T = type(variable)
+    if T ≡ String
+        buffer = fill(Cchar(0), string_array_element_max_size)
+        err = ccall((:adios2_get, libadios2_c), Cint,
+                    (Cstring, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
+                    variable.ptr, buffer, Cint(launch))
+        data[] = buffer
+    else
+        err = ccall((:adios2_get, libadios2_c), Cint,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
+                    variable.ptr, data, Cint(launch))
+    end
     return Error(err)
 end
 

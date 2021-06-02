@@ -72,13 +72,17 @@ julia_type(type::AType) = julia_types[Int(type) + 1]
 
 export AdiosType
 """
-    const AdiosType = Union{Float32,Float64,Complex{Float32},Complex{Float64},Int8,
-                            Int16,Int32,Int64,UInt8,UInt16,UInt32,UInt64}
+    const AdiosType = Union{AbstractString,
+                            Float32,Float64,
+                            Complex{Float32},Complex{Float64},
+                            Int8,Int16,Int32,Int64,
+                            UInt8,UInt16,UInt32,UInt64}
 
 A Union of all scalar types supported in ADIOS files.
 """
-const AdiosType = Union{Float32,Float64,Complex{Float32},Complex{Float64},Int8,
-                        Int16,Int32,Int64,UInt8,UInt16,UInt32,UInt64}
+const AdiosType = Union{AbstractString,Float32,Float64,Complex{Float32},
+                        Complex{Float64},Int8,Int16,Int32,Int64,UInt8,UInt16,
+                        UInt32,UInt64}
 
 export Mode
 export mode_undefined, mode_write, mode_read, mode_append, mode_deferred,
@@ -133,6 +137,8 @@ const shapeid_strings = String["shapeid_unknown", "shapeid_global_value",
 shapeid_string(shapeid::ShapeId) = shapeid_strings[Int(shapeid) + 2]
 Base.show(io::IO, shapeid::ShapeId) = print(io, shapeid_string(shapeid))
 
-const local_value_dim = typemax(Culonglong) - 2
+const string_array_element_max_size = 4096
+
+const local_value_dim = typemax(Csize_t) - 2
 export LocalValue
 struct LocalValue end

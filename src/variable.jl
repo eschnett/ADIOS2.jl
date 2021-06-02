@@ -25,12 +25,12 @@ function name(variable::Variable)
                 (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
                 variable.ptr)
     Error(err) ≠ error_none && return nothing
-    name = '\0'^size[]
+    name = Array{Cchar}(undef, size[])
     err = ccall((:adios2_variable_name, libadios2_c), Cint,
                 (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), name, size,
                 variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return name
+    return unsafe_string(pointer(name), size[])
 end
 
 export type

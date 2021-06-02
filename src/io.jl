@@ -164,9 +164,16 @@ Define an attribute array inside `io`.
 function define_attribute_array(io::AIO, name::AbstractString,
                                 values::AbstractVector{<:AdiosType})
     T = eltype(values)
-    ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
-                (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr, name,
-                adios_type(T), values, length(values))
+    if T <: AbstractString && typeof(values) ≢ Vector{String}
+        cvalues = Vector{String}(values)
+        ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr,
+                    name, adios_type(T), cvalues, length(values))
+    else
+        ptr = ccall((:adios2_define_attribute_array, libadios2_c), Ptr{Cvoid},
+                    (Ptr{Cvoid}, Cstring, Cint, Ptr{Cvoid}, Csize_t), io.ptr,
+                    name, adios_type(T), values, length(values))
+    end
     return ptr == C_NULL ? nothing : Attribute(ptr, io.adios)
 end
 
