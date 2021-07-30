@@ -31,7 +31,7 @@ function adios_init_mpi(comm::MPI.Comm,
                     (MPI.MPI_Comm,), comm)
     else
         ptr = ccall((:adios2_init_config_mpi, libadios2_c_mpi), Ptr{Cvoid},
-                    (MPI.MPI_Comm, Cstring), comm, config_file)
+                    (Cstring, MPI.MPI_Comm), config_file, comm)
     end
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
