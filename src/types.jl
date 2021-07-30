@@ -110,6 +110,39 @@ operations.
     mode_sync = 5
 end
 
+export StepMode
+export step_mode_append, step_mode_update, step_mode_read
+"""
+    @enum StepMode begin
+        step_mode_append
+        step_mode_update
+        step_mode_read
+    end
+"""
+@enum StepMode begin
+    step_mode_append = 0
+    step_mode_update = 1
+    step_mode_read = 2
+end
+
+export StepStatus
+export step_status_other_error, step_status_ok, step_status_not_ready,
+       step_status_end_of_stream
+"""
+    @enum StepStatus begin
+        step_status_other_error
+        step_status_ok
+        step_status_not_ready
+        step_status_end_of_stream
+    end
+"""
+@enum StepStatus begin
+    step_status_other_error = -1
+    step_status_ok = 0
+    step_status_not_ready = 1
+    step_status_end_of_stream = 2
+end
+
 export ShapeId
 export shapeid_unknown, shapeid_global_value, shapeid_global_array,
        shapeid_joined_array, shapeid_local_value, shapeid_local_array

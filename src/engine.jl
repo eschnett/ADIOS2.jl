@@ -17,6 +17,109 @@ struct Engine
     end
 end
 
+export name
+"""
+    engine_name = name(engine::Engine)
+    engine_name::Union{Nothing,String}
+
+Retrieve engine name.
+"""
+function name(engine::Engine)
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_engine_name, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
+                engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    name = Array{Cchar}(undef, size[])
+    err = ccall((:adios2_engine_name, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), name, size, engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return unsafe_string(pointer(name), size[])
+end
+
+export type
+"""
+    engine_type = type(engine::Engine)
+    engine_type::Union{Nothing,String}
+
+Retrieve engine type.
+"""
+function type(engine::Engine)
+    size = Ref{Csize_t}()
+    err = ccall((:adios2_engine_get_type, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), C_NULL, size,
+                engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    type = Array{Cchar}(undef, size[])
+    err = ccall((:adios2_engine_get_type, libadios2_c), Cint,
+                (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), type, size, engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return unsafe_string(pointer(type), size[])
+end
+
+export openmode
+"""
+    engine_openmode = openmode(engine::Engine)
+    engine_openmode::Union{Nothing,Mode}
+
+Retrieve engine openmode.
+"""
+function openmode(engine::Engine)
+    mode = Ref{Cint}()
+    err = ccall((:adios2_engine_openmode, libadios2_c), Cint,
+                (Ptr{Cint}, Ptr{Cvoid}), mode, engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return Mode(mode)
+end
+
+export begin_step
+"""
+    status = begin_step(engine::Engine, mode::StepMode,
+                        timeout_seconds::AbstractFloat)
+    status::Union{Noting,StepStatus}
+
+Begin a logical adios2 step stream.
+"""
+function begin_step(engine::Engine, mode::StepMode,
+                    timeout_seconds::AbstractFloat)
+    status = Ref{Cint}()
+    err = ccall((:adios2_engine_begin_step, libadios2_c), Cint,
+                (Ptr{Cvoid}, Cint, Cfloat, Ptr{Cint}), engine.ptr, mode,
+                timeout_seconds, status)
+    Error(err) ≠ error_none && return nothing
+    return StepStatus(status)
+end
+
+export current_step
+"""
+    step = current_step(engine::Engine)
+    step::Union{Noting,Int}
+
+Inspect current logical step.
+"""
+function current_step(engine::Engine)
+    step = Ref{Csize_t}()
+    err = ccall((:adios2_engine_current_step, libadios2_c), Cint,
+                (Ptr{Csize_t}, Ptr{Cvoid}), step, engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return Int(step)
+end
+
+export steps
+"""
+    step = steps(engine::Engine)
+    step::Union{Noting,Int}
+
+Inspect total number of available steps.
+"""
+function steps(engine::Engine)
+    steps = Ref{Csize_t}()
+    err = ccall((:adios2_engine_steps, libadios2_c), Cint,
+                (Ptr{Csize_t}, Ptr{Cvoid}), steps, engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return Int(steps)
+end
+
 """
     err = Base.put!(engine::Engine, variable::Variable,
                     data::Union{Ref,Array,Ptr}, launch::Mode=mode_deferred)
@@ -102,6 +205,19 @@ function perform_gets(engine::Engine)
     end
     empty!(engine.get_tasks)
     return Error(err)
+end
+
+export end_step
+"""
+    end_step(engine::Engine)
+
+Terminate interaction with current step.
+"""
+function end_step(engine::Engine)
+    err = ccall((:adios2_engine_end_step, libadios2_c), Cint, (Ptr{Cvoid},),
+                engine.ptr)
+    Error(err) ≠ error_none && return nothing
+    return nothing
 end
 
 """
