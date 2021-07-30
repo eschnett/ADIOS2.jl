@@ -18,21 +18,21 @@ Adios() = Adios(C_NULL)
 export adios_init_mpi
 """
     adios = adios_init_mpi(comm::MPI.Comm)
-    adios = adios_init_mpi(comm::MPI.Comm, config_file::AbstractString)
+    adios = adios_init_mpi(config_file::AbstractString, comm::MPI.Comm)
     adios::Union{Adios,Nothing}
 
 Starting point for MPI apps. Creates an ADIOS handler. MPI collective
 and it calls `MPI_Comm_dup`.
 """
-function adios_init_mpi(comm::MPI.Comm,
-                        config_file::Union{Nothing,AbstractString}=nothing)
-    if config_file ≡ nothing
-        ptr = ccall((:adios2_init_mpi, libadios2_c_mpi), Ptr{Cvoid},
-                    (MPI.MPI_Comm,), comm)
-    else
-        ptr = ccall((:adios2_init_config_mpi, libadios2_c_mpi), Ptr{Cvoid},
-                    (Cstring, MPI.MPI_Comm), config_file, comm)
-    end
+function adios_init_mpi(comm::MPI.Comm)
+    ptr = ccall((:adios2_init_mpi, libadios2_c_mpi), Ptr{Cvoid},
+                (MPI.MPI_Comm,), comm)
+    return ptr == C_NULL ? nothing : Adios(ptr)
+end
+function adios_init_mpi(config_file::Union{Nothing,AbstractString}=nothing,
+                        comm::MPI.Comm)
+    ptr = ccall((:adios2_init_config_mpi, libadios2_c_mpi), Ptr{Cvoid},
+                (Cstring, MPI.MPI_Comm), config_file, comm)
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
 
@@ -48,13 +48,13 @@ require a runtime config file.
 See also the [ADIOS2
 documentation](https://adios2.readthedocs.io/en/latest/api_full/api_full.html#_CPPv418adios2_init_serialv).
 """
+function adios_init_serial()
+    ptr = ccall((:adios2_init_serial, libadios2_c), Ptr{Cvoid}, ())
+    return ptr == C_NULL ? nothing : Adios(ptr)
+end
 function adios_init_serial(config_file::Union{Nothing,AbstractString}=nothing)
-    if config_file ≡ nothing
-        ptr = ccall((:adios2_init_serial, libadios2_c), Ptr{Cvoid}, ())
-    else
-        ptr = ccall((:adios2_init_config_serial, libadios2_c), Ptr{Cvoid},
-                    (Cstring,), config_file)
-    end
+    ptr = ccall((:adios2_init_config_serial, libadios2_c), Ptr{Cvoid},
+                (Cstring,), config_file)
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
 
