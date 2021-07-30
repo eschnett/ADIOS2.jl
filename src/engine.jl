@@ -69,7 +69,7 @@ function openmode(engine::Engine)
     err = ccall((:adios2_engine_openmode, libadios2_c), Cint,
                 (Ptr{Cint}, Ptr{Cvoid}), mode, engine.ptr)
     Error(err) ≠ error_none && return nothing
-    return Mode(mode)
+    return Mode(mode[])
 end
 
 export begin_step
@@ -88,7 +88,7 @@ function begin_step(engine::Engine, mode::StepMode,
                 (Ptr{Cvoid}, Cint, Cfloat, Ptr{Cint}), engine.ptr, mode,
                 timeout_seconds, status)
     Error(err) ≠ error_none && return nothing
-    return StepStatus(status)
+    return StepStatus(status[])
 end
 function begin_step(engine::Engine)
     if openmode(engine) == mode_read
@@ -125,7 +125,7 @@ function steps(engine::Engine)
     err = ccall((:adios2_steps, libadios2_c), Cint, (Ptr{Csize_t}, Ptr{Cvoid}),
                 steps, engine.ptr)
     Error(err) ≠ error_none && return nothing
-    return Int(steps)
+    return Int(steps[])
 end
 
 """
