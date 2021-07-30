@@ -75,19 +75,27 @@ end
 export begin_step
 """
     status = begin_step(engine::Engine, mode::StepMode,
-                        timeout_seconds::AbstractFloat)
+                        timeout_seconds::Union{Integer,AbstractFloat})
+    status = begin_step(engine::Engine)
     status::Union{Noting,StepStatus}
 
 Begin a logical adios2 step stream.
 """
 function begin_step(engine::Engine, mode::StepMode,
-                    timeout_seconds::AbstractFloat)
+                    timeout_seconds::Union{Integer,AbstractFloat})
     status = Ref{Cint}()
-    err = ccall((:adios2_engine_begin_step, libadios2_c), Cint,
+    err = ccall((:adios2_begin_step, libadios2_c), Cint,
                 (Ptr{Cvoid}, Cint, Cfloat, Ptr{Cint}), engine.ptr, mode,
                 timeout_seconds, status)
     Error(err) ≠ error_none && return nothing
     return StepStatus(status)
+end
+function begin_step(engine::Engine)
+    if openmode(engine) == mode_read
+        return begin_step(engine, step_mode_read, -1)
+    else
+        return begin_step(engine, step_mode_append, -1)
+    end
 end
 
 export current_step
@@ -99,7 +107,7 @@ Inspect current logical step.
 """
 function current_step(engine::Engine)
     step = Ref{Csize_t}()
-    err = ccall((:adios2_engine_current_step, libadios2_c), Cint,
+    err = ccall((:adios2_current_step, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), step, engine.ptr)
     Error(err) ≠ error_none && return nothing
     return Int(step)
@@ -114,8 +122,8 @@ Inspect total number of available steps.
 """
 function steps(engine::Engine)
     steps = Ref{Csize_t}()
-    err = ccall((:adios2_engine_steps, libadios2_c), Cint,
-                (Ptr{Csize_t}, Ptr{Cvoid}), steps, engine.ptr)
+    err = ccall((:adios2_steps, libadios2_c), Cint, (Ptr{Csize_t}, Ptr{Cvoid}),
+                steps, engine.ptr)
     Error(err) ≠ error_none && return nothing
     return Int(steps)
 end
@@ -214,7 +222,7 @@ export end_step
 Terminate interaction with current step.
 """
 function end_step(engine::Engine)
-    err = ccall((:adios2_engine_end_step, libadios2_c), Cint, (Ptr{Cvoid},),
+    err = ccall((:adios2_end_step, libadios2_c), Cint, (Ptr{Cvoid},),
                 engine.ptr)
     Error(err) ≠ error_none && return nothing
     return nothing

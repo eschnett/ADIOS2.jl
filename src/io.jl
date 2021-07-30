@@ -375,7 +375,7 @@ MPI Collective function as it calls `MPI_Comm_dup`.
 """
 function Base.open(io::AIO, name::AbstractString, mode::Mode)
     ptr = ccall((:adios2_open, libadios2_c), Ptr{Cvoid},
-                (Ptr{Cvoid}, Cstring, Cint), io.ptr, name, Cint(mode))
+                (Ptr{Cvoid}, Cstring, Cint), io.ptr, name, mode)
     return ptr == C_NULL ? nothing : Engine(ptr, io.adios)
 end
 
