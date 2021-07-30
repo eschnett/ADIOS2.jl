@@ -12,6 +12,8 @@ Adaptable Input Output System version 2.
 Error
 AdiosType
 Mode
+StepMode
+StepStatus
 ShapeId
 ```
 
@@ -79,10 +81,17 @@ data(attribute::Attribute)
 
 ```@docs
 Engine
+name
+type
+openmode
+begin_step
+current_step
+steps
 put!
 perform_puts!
 get
 perform_gets
+end_step
 flush(engine::Engine)
 close(engine::Engine)
 ```
