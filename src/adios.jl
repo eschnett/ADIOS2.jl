@@ -29,8 +29,7 @@ function adios_init_mpi(comm::MPI.Comm)
                 (MPI.MPI_Comm,), comm)
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
-function adios_init_mpi(config_file::Union{Nothing,AbstractString}=nothing,
-                        comm::MPI.Comm)
+function adios_init_mpi(config_file::AbstractString, comm::MPI.Comm)
     ptr = ccall((:adios2_init_config_mpi, libadios2_c_mpi), Ptr{Cvoid},
                 (Cstring, MPI.MPI_Comm), config_file, comm)
     return ptr == C_NULL ? nothing : Adios(ptr)
@@ -52,7 +51,7 @@ function adios_init_serial()
     ptr = ccall((:adios2_init_serial, libadios2_c), Ptr{Cvoid}, ())
     return ptr == C_NULL ? nothing : Adios(ptr)
 end
-function adios_init_serial(config_file::Union{Nothing,AbstractString}=nothing)
+function adios_init_serial(config_file::AbstractString)
     ptr = ccall((:adios2_init_config_serial, libadios2_c), Ptr{Cvoid},
                 (Cstring,), config_file)
     return ptr == C_NULL ? nothing : Adios(ptr)
