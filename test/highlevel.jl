@@ -79,28 +79,26 @@ if comm_rank == 0
         @test ndims(inquire_variable(file.io, "g1/v6")) == 4
         @test ndims(inquire_variable(file.io, "g1/g2/v7")) == 5
 
-        @test shape(inquire_variable(file.io, "v1")) == CartesianIndex(1)
+        @test shape(inquire_variable(file.io, "v1")) == (1,)
         @test shape(inquire_variable(file.io, "v3")) ≡ nothing
         @test shape(inquire_variable(file.io, "v4")) ≡ nothing
         @test shape(inquire_variable(file.io, "v5")) ≡ nothing
         @test shape(inquire_variable(file.io, "g1/v6")) ≡ nothing
         @test shape(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
 
-        @test start(inquire_variable(file.io, "v1")) == CartesianIndex(0)
+        @test start(inquire_variable(file.io, "v1")) == (0,)
         @test start(inquire_variable(file.io, "v3")) ≡ nothing
         @test start(inquire_variable(file.io, "v4")) ≡ nothing
         @test start(inquire_variable(file.io, "v5")) ≡ nothing
         @test start(inquire_variable(file.io, "g1/v6")) ≡ nothing
         @test start(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
 
-        @test count(inquire_variable(file.io, "v1")) == CartesianIndex(1)
-        @test count(inquire_variable(file.io, "v3")) == CartesianIndex(1)
-        @test count(inquire_variable(file.io, "v4")) == CartesianIndex(1, 1)
-        @test count(inquire_variable(file.io, "v5")) == CartesianIndex(1, 1, 1)
-        @test count(inquire_variable(file.io, "g1/v6")) ==
-              CartesianIndex(1, 1, 1, 1)
-        @test count(inquire_variable(file.io, "g1/g2/v7")) ==
-              CartesianIndex(1, 1, 1, 1, 1)
+        @test count(inquire_variable(file.io, "v1")) == (1,)
+        @test count(inquire_variable(file.io, "v3")) == (1,)
+        @test count(inquire_variable(file.io, "v4")) == (1, 1)
+        @test count(inquire_variable(file.io, "v5")) == (1, 1, 1)
+        @test count(inquire_variable(file.io, "g1/v6")) == (1, 1, 1, 1)
+        @test count(inquire_variable(file.io, "g1/g2/v7")) == (1, 1, 1, 1, 1)
 
         v1 = adios_get(file, "v1")
         @test !isready(v1)

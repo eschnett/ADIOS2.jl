@@ -116,7 +116,7 @@ end
 export shape
 """
     var_shape = shape(variable::Variable)
-    var_shape::Union{Nothing,CartesianIndex}
+    var_shape::Union{Nothing,NTuple{N,Int} where N}
 
 Retrieve current variable shape.
 """
@@ -129,13 +129,13 @@ function shape(variable::Variable)
     err = ccall((:adios2_variable_shape, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), shape, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(reverse!(shape)...)
+    return Tuple(reverse!(shape))
 end
 
 export start
 """
     var_start = start(variable::Variable)
-    var_start::Union{Nothing,CartesianIndex}
+    var_start::Union{Nothing,NTuple{N,Int} where N,}
 
 Retrieve current variable start.
 """
@@ -148,25 +148,25 @@ function start(variable::Variable)
     err = ccall((:adios2_variable_start, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), start, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(reverse!(start)...)
+    return Tuple(reverse!(start))
 end
 
 """
     var_count = count(variable::Variable)
-    var_count::Union{Nothing,CartesianIndex}
+    var_count::Union{Nothing,NTuple{N,Int} where N}
 
 Retrieve current variable count.
 """
 function Base.count(variable::Variable)
     var_shapeid = shapeid(variable)
     var_shapeid ≡ nothing && return nothing
-    var_shapeid == shapeid_local_value && return CartesianIndex()
+    var_shapeid == shapeid_local_value && return ()
     D = ndims(variable)
     count = Array{Csize_t}(undef, D)
     err = ccall((:adios2_variable_count, libadios2_c), Cint,
                 (Ptr{Csize_t}, Ptr{Cvoid}), count, variable.ptr)
     Error(err) ≠ error_none && return nothing
-    return CartesianIndex(reverse!(count)...)
+    return Tuple(reverse!(count))
 end
 
 export steps_start

@@ -15,9 +15,9 @@ end
 export define_variable
 """
     variable = define_variable(io::AIO, name::AbstractString, type::Type,
-                         shape::Union{Nothing,CartesianIndex}=nothing,
-                         start::Union{Nothing,CartesianIndex}=nothing,
-                         count::Union{Nothing,CartesianIndex}=nothing,
+                         shape::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
+                         start::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
+                         count::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
                          constant_dims::Bool=false)
     variable::Union{Nothing,Variable}
 
@@ -43,9 +43,12 @@ function define_variable(io::AIO, name::AbstractString, type::Type,
     return ptr == C_NULL ? nothing : Variable(ptr, io.adios)
 end
 function define_variable(io::AIO, name::AbstractString, type::Type,
-                         shape::Union{Nothing,CartesianIndex}=nothing,
-                         start::Union{Nothing,CartesianIndex}=nothing,
-                         count::Union{Nothing,CartesianIndex}=nothing;
+                         shape::Union{Nothing,NTuple{N,Int} where N,
+                                      CartesianIndex}=nothing,
+                         start::Union{Nothing,NTuple{N,Int} where N,
+                                      CartesianIndex}=nothing,
+                         count::Union{Nothing,NTuple{N,Int} where N,
+                                      CartesianIndex}=nothing;
                          constant_dims::Bool=false)
     ndims = max(length(maybe(shape, ())), length(maybe(start, ())),
                 length(maybe(count, ())))
@@ -65,8 +68,8 @@ function define_variable(io::AIO, name::AbstractString, var::AdiosType)
 end
 function define_variable(io::AIO, name::AbstractString,
                          arr::AbstractArray{<:AdiosType})
-    return define_variable(io, name, eltype(arr), nothing, nothing,
-                           CartesianIndex(size(arr)); constant_dims=true)
+    return define_variable(io, name, eltype(arr), nothing, nothing, size(arr);
+                           constant_dims=true)
 end
 
 export inquire_variable

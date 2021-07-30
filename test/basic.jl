@@ -56,9 +56,9 @@ const filename = "$dirname/test.bp"
                 # shape, start, count of global array
                 cs = ntuple(d -> d < D ? 1 : comm_size, D)
                 cr = ntuple(d -> d < D ? 0 : comm_rank, D)
-                sh = CartesianIndex(cs .* sz)
-                st = CartesianIndex(cr .* sz)
-                co = CartesianIndex(sz)
+                sh = cs .* sz
+                st = cr .* sz
+                co = sz
 
                 # Global array
                 nm = "garray.$T.$D.$len"
@@ -90,21 +90,21 @@ const filename = "$dirname/test.bp"
         @test shapeid(var1) == si
         if si == shapeid_global_value
             @test ndims(var1) == 0
-            @test shape(var1) == CartesianIndex()
-            @test start(var1) == CartesianIndex()
-            @test count(var1) == CartesianIndex()
+            @test shape(var1) == ()
+            @test start(var1) == ()
+            @test count(var1) == ()
         elseif si == shapeid_local_value
             @test ndims(var1) == 0
             @test shape(var1) ≡ nothing
             @test start(var1) ≡ nothing
-            @test count(var1) ≡ CartesianIndex()
+            @test count(var1) ≡ ()
         elseif si == shapeid_global_array
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
             cs = ntuple(d -> d < D ? 1 : comm_size, D)
             cr = ntuple(d -> d < D ? 0 : comm_rank, D)
-            sh = CartesianIndex(cs .* sz)
-            st = CartesianIndex(cr .* sz)
-            co = CartesianIndex(sz)
+            sh = cs .* sz
+            st = cr .* sz
+            co = sz
             @test ndims(var1) == D
             @test shape(var1) == sh
             @test start(var1) == st
@@ -114,7 +114,7 @@ const filename = "$dirname/test.bp"
             @test ndims(var1) == D
             @test shape(var1) ≡ nothing
             @test start(var1) ≡ nothing
-            @test count(var1) == CartesianIndex(sz)
+            @test count(var1) == sz
         else
             error("internal error")
         end
@@ -310,30 +310,30 @@ GC.gc(true)
             # Global values are re-interpreted as global arrays
             @test shapeid(var1) == si
             @test ndims(var1) == 0
-            @test shape(var1) == CartesianIndex()
-            @test start(var1) == CartesianIndex()
-            @test count(var1) == CartesianIndex()
+            @test shape(var1) == ()
+            @test start(var1) == ()
+            @test count(var1) == ()
         elseif si == shapeid_local_value
             # Local values are re-interpreted as global arrays
             @test shapeid(var1) == shapeid_global_array
             @test ndims(var1) == 1
-            @test shape(var1) == CartesianIndex(1)
-            @test start(var1) == CartesianIndex(0)
-            @test count(var1) == CartesianIndex(1)
+            @test shape(var1) == (1,)
+            @test start(var1) == (0,)
+            @test count(var1) == (1,)
         elseif si == shapeid_global_array
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
             cs = ntuple(d -> d < D ? 1 : comm_size, D)
             cr = ntuple(d -> d < D ? 0 : comm_rank, D)
-            sh = CartesianIndex(cs .* sz)
-            st = CartesianIndex(cr .* sz)
-            co = CartesianIndex(sz)
+            sh = cs .* sz
+            st = cr .* sz
+            co = sz
             # Empty global arrays are mis-interpreted as global values
             if len == 0
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
-                @test shape(var1) == CartesianIndex()
-                @test start(var1) == CartesianIndex()
-                @test count(var1) == CartesianIndex()
+                @test shape(var1) == ()
+                @test start(var1) == ()
+                @test count(var1) == ()
             else
                 @test shapeid(var1) == si
                 @test ndims(var1) == D
@@ -355,15 +355,15 @@ GC.gc(true)
             if len == 0
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
-                @test shape(var1) == CartesianIndex()
-                @test start(var1) == CartesianIndex()
-                @test count(var1) == CartesianIndex()
+                @test shape(var1) == ()
+                @test start(var1) == ()
+                @test count(var1) == ()
             else
                 @test shapeid(var1) == si
                 @test ndims(var1) == D
                 @test shape(var1) ≡ nothing
                 @test start(var1) ≡ nothing
-                @test count(var1) == CartesianIndex(sz)
+                @test count(var1) == sz
             end
         else
             error("internal error")
