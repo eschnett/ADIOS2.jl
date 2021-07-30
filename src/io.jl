@@ -12,6 +12,10 @@ struct AIO
     AIO(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+function Base.show(io::IO, ::MIME"text/plain", aio::AIO)
+    return print(io, "AIO{$(Uint(aio.ptr))}")
+end
+
 export define_variable
 """
     variable = define_variable(io::AIO, name::AbstractString, type::Type,

@@ -15,6 +15,10 @@ mutable struct Adios
 end
 Adios() = Adios(C_NULL)
 
+function Base.show(io::IO, ::MIME"text/plain", adios::Adios)
+    return print(io, "Adios{$(Uint(adios.ptr))}")
+end
+
 export adios_init_mpi
 """
     adios = adios_init_mpi(comm::MPI.Comm)

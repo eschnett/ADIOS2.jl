@@ -17,6 +17,11 @@ struct Engine
     end
 end
 
+function Base.show(io::IO, ::MIME"text/plain", engine::Engine)
+    nm = name(engine)
+    return print(io, "Engine{$nm}")
+end
+
 export name
 """
     engine_name = name(engine::Engine)

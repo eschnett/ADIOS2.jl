@@ -12,6 +12,11 @@ struct Attribute
     Attribute(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+function Base.show(io::IO, ::MIME"text/plain", attribute::Attribute)
+    nm = name(attribute)
+    return print(io, "Attribute{$nm}")
+end
+
 export name
 """
     attr_name = name(attribute::Attribute)

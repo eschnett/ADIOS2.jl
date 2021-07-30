@@ -12,6 +12,11 @@ struct Variable
     Variable(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+function Base.show(io::IO, ::MIME"text/plain", variable::Variable)
+    nm = name(variable)
+    return print(io, "Variable{$nm}")
+end
+
 export set_block_selection
 """
     set_block_selection(variable::Variable, block_id::Int)
