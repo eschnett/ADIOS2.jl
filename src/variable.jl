@@ -21,8 +21,6 @@ function Base.show(io::IO, variable::Variable)
     return
 end
 
-name, type, shapeid, shape
-
 function Base.show(io::IO, ::MIME"text/plain", variable::Variable)
     nm = name(variable)
     print(io, "Variable{$nm}")
