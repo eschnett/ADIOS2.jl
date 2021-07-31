@@ -229,8 +229,12 @@ Terminate interaction with current step.
 function end_step(engine::Engine)
     err = ccall((:adios2_end_step, libadios2_c), Cint, (Ptr{Cvoid},),
                 engine.ptr)
-    Error(err) ≠ error_none && return nothing
-    return nothing
+    empty!(engine.get_targets)
+    for task in engine.get_tasks
+        task()
+    end
+    empty!(engine.get_tasks)
+    return Error(err)
 end
 
 """

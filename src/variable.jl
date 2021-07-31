@@ -12,9 +12,21 @@ struct Variable
     Variable(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+function Base.show(io::IO, variable::Variable)
+    nm = name(variable)
+    T = type(variable)
+    sid = shapeid(variable)
+    sh = shape(variable)
+    print(io, "Variable{name=$nm,type=$T,shapeid=$sid, shape=$sh}")
+    return
+end
+
+name, type, shapeid, shape
+
 function Base.show(io::IO, ::MIME"text/plain", variable::Variable)
     nm = name(variable)
-    return print(io, "Variable{$nm}")
+    print(io, "Variable{$nm}")
+    return
 end
 
 export set_block_selection
