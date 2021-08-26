@@ -16,7 +16,7 @@ end
 Adios() = Adios(C_NULL)
 
 function Base.show(io::IO, ::MIME"text/plain", adios::Adios)
-    return print(io, "Adios{$(Uint(adios.ptr))}")
+    return print(io, "Adios(0x$(string(UInt(adios.ptr); base=16)))")
 end
 
 export adios_init_mpi

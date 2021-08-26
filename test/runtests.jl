@@ -19,6 +19,17 @@ const use_mpi = comm_size > 1
 
 ################################################################################
 
+"""
+Convert an object to a string as the REPL would
+"""
+function showmime(obj)
+    buf = IOBuffer()
+    show(buf, MIME"text/plain"(), obj)
+    return String(take!(buf))
+end
+
+################################################################################
+
 include("internal.jl")
 include("basic.jl")
 include("highlevel.jl")

@@ -12,9 +12,19 @@ struct Attribute
     Attribute(ptr::Ptr{Cvoid}, adios::Adios) = new(ptr, adios)
 end
 
+function Base.show(io::IO, attribute::Attribute)
+    nm = name(attribute)
+    T = type(attribute)
+    isval = is_value(attribute)
+    sz = size(attribute)
+    d = data(attribute)
+    print(io, "Attribute(name=$nm,type=$T,is_value=$isval,size=$sz,data=$d)")
+    return
+end
+
 function Base.show(io::IO, ::MIME"text/plain", attribute::Attribute)
     nm = name(attribute)
-    return print(io, "Attribute{$nm}")
+    return print(io, "Attribute($nm)")
 end
 
 export name

@@ -22,9 +22,13 @@ const filename = "$dirname/test.bp"
         adios = adios_init_serial()
     end
     @test adios isa Adios
+    @test match(r"Adios\(.+\)", string(adios)) ≢ nothing
+    @test match(r"Adios\(0x[0-9a-f]+\)", showmime(adios)) ≢ nothing
 
     io = declare_io(adios, "IO")
     @test io isa AIO
+    @test match(r"AIO\(.+\)", string(io)) ≢ nothing
+    @test match(r"AIO\(0x[0-9a-f]+\)", showmime(io)) ≢ nothing
 
     # Define some variables
     variables = Dict()
@@ -38,12 +42,18 @@ const filename = "$dirname/test.bp"
         nm = "gvalue.p$rankstr.$T"
         gval = define_variable(io, nm, T)
         @test gval isa Variable
+        @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                    string(gval)) ≢ nothing
+        @test match(r"Variable\(.+\)", showmime(gval)) ≢ nothing
         variables[(shapeid_global_value, -1, -1, T)] = (nm, gval)
 
         # Local value
         nm = "lvalue.p$rankstr.$T"
         lval = define_variable(io, nm, val)
         @test lval isa Variable
+        @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                    string(lval)) ≢ nothing
+        @test match(r"Variable\(.+\)", showmime(lval)) ≢ nothing
         variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
 
         # String arrays are not supported
@@ -64,12 +74,18 @@ const filename = "$dirname/test.bp"
                 nm = "garray.$T.$D.$len"
                 garr = define_variable(io, nm, T, sh, st, co)
                 @test garr isa Variable
+                @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                            string(garr)) ≢ nothing
+                @test match(r"Variable\(.+\)", showmime(garr)) ≢ nothing
                 variables[(shapeid_global_array, D, len, T)] = (nm, garr)
 
                 # Local array
                 nm = "larray.p$rankstr.$T.$D.$len"
                 larr = define_variable(io, nm, arr)
                 @test larr isa Variable
+                @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                            string(larr)) ≢ nothing
+                @test match(r"Variable\(.+\)", showmime(larr)) ≢ nothing
                 variables[(shapeid_local_array, D, len, T)] = (nm, larr)
             end
         end
@@ -134,6 +150,9 @@ const filename = "$dirname/test.bp"
         nm = "value.p$rankstr.$T"
         attr = define_attribute(io, nm, val)
         @test attr isa Attribute
+        @test match(r"Attribute\(name=.+,type=.+,is_value=(false|true),size=.+,data=.+\)",
+                    string(attr)) ≢ nothing
+        @test match(r"Attribute\(.+\)", showmime(attr)) ≢ nothing
         attributes[(-1, -1, "", T)] = (nm, attr)
 
         # Variable attribute
@@ -141,6 +160,9 @@ const filename = "$dirname/test.bp"
         varname = variables[(shapeid_global_value, -1, -1, T)][1]
         attr = define_variable_attribute(io, nm, val, varname)
         @test attr isa Attribute
+        @test match(r"Attribute\(name=.+,type=.+,is_value=(false|true),size=.+,data=.+\)",
+                    string(attr)) ≢ nothing
+        @test match(r"Attribute\(.+\)", showmime(attr)) ≢ nothing
         attributes[(-1, -1, varname, T)] = ("$varname/$nm", attr)
 
         # Attribute arrays need to have at least one element (why?)
@@ -151,12 +173,18 @@ const filename = "$dirname/test.bp"
             nm = "array.p$rankstr.$T.$len"
             arr = define_attribute_array(io, nm, vals)
             @test arr isa Attribute
+            @test match(r"Attribute\(name=.+,type=.+,is_value=(false|true),size=.+,data=.+\)",
+                        string(arr)) ≢ nothing
+            @test match(r"Attribute\(.+\)", showmime(arr)) ≢ nothing
             attributes[(1, len, "", T)] = (nm, arr)
 
             # Variable attribute array
             nm = "array.p$rankstr.$T.$len"
             varname = variables[(shapeid_global_value, -1, -1, T)][1]
             arr = define_variable_attribute_array(io, nm, vals, varname)
+            @test match(r"Attribute\(name=.+,type=.+,is_value=(false|true),size=.+,data=.+\)",
+                        string(arr)) ≢ nothing
+            @test match(r"Attribute\(.+\)", showmime(arr)) ≢ nothing
             @test arr isa Attribute
             attributes[(1, len, varname, T)] = ("$varname/$nm", arr)
         end

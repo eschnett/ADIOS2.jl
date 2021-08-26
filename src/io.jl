@@ -13,7 +13,7 @@ struct AIO
 end
 
 function Base.show(io::IO, ::MIME"text/plain", aio::AIO)
-    return print(io, "AIO{$(Uint(aio.ptr))}")
+    return print(io, "AIO(0x$(string(UInt(aio.ptr); base=16)))")
 end
 
 export define_variable

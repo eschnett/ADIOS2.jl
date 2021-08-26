@@ -17,13 +17,13 @@ function Base.show(io::IO, variable::Variable)
     T = type(variable)
     sid = shapeid(variable)
     sh = shape(variable)
-    print(io, "Variable{name=$nm,type=$T,shapeid=$sid, shape=$sh}")
+    print(io, "Variable(name=$nm,type=$T,shapeid=$sid,shape=$sh)")
     return
 end
 
 function Base.show(io::IO, ::MIME"text/plain", variable::Variable)
     nm = name(variable)
-    print(io, "Variable{$nm}")
+    print(io, "Variable($nm)")
     return
 end
 
