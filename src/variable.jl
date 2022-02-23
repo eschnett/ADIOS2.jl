@@ -229,7 +229,7 @@ certain type, not bytes) for the current selection.
 """
 function selection_size(variable::Variable)
     selection_size = Ref{Csize_t}()
-    err = ccall((:adios2_variable_selection_size, libadios2_c), Cint,
+    err = ccall((:adios2_selection_size, libadios2_c), Cint,
                 (Ref{Csize_t}, Ptr{Cvoid}), selection_size, variable.ptr)
     Error(err) ≠ error_none && return nothing
     return Int(selection_size[])
