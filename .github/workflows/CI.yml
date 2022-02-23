@@ -31,10 +31,6 @@ jobs:
             prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "ubuntu-latest"
-            version: "1.8"
-            prefix: $HOME/.julia/bin/mpiexecjl2
-          - arch: "x64"
-            os: "ubuntu-latest"
             version: "1.6"
             prefix: $HOME/.julia/bin/mpiexecjl2
     steps:
