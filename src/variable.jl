@@ -78,7 +78,7 @@ end
 # """
 #     type_string = variable_type_string(variable::Variable)
 #     type_string::Union{Nothing,String}
-# 
+#
 # Retrieve variable type in string form "char", "unsigned long", etc.
 # This reports C type names.
 # """
@@ -266,3 +266,27 @@ function Base.maximum(variable::Variable)
     Error(err) ≠ error_none && return nothing
     return varmax[]
 end
+
+export set_selection
+"""
+    set_selection(variable::Variable,
+                       start::Union{Nothing,NTuple{N,Int} where N,CartesianIndex},
+                       count::Union{Nothing,NTuple{N,Int} where N,CartesianIndex})
+
+    Set the selection for reading or alter the selection for writing if define_variable was called with constant_dims = false.
+"""
+function set_selection(variable::Variable,
+                       start::NTuple{N,Int} where {N,CartesianIndex},
+                       count::NTuple{N,Int} where {N,CartesianIndex} )
+
+    @assert length(start) == length(count)
+    ndims = length(start)
+
+    err = ccall((:adios2_set_selection, libadios2_c), Cint,
+            (Ptr{Cvoid}, Csize_t, Ptr{Csize_t}, Ptr{Csize_t}),
+            variable.ptr, ndims, Csize_t[reverse(Tuple(start))...], Csize_t[reverse(Tuple(count))...])
+
+    Error(err) ≠ error_none && return nothing
+    return ()
+end
+
