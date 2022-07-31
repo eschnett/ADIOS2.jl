@@ -270,14 +270,14 @@ end
 export set_selection
 """
     set_selection(variable::Variable,
-                       start::Union{Nothing,NTuple{N,Int} where N,CartesianIndex},
-                       count::Union{Nothing,NTuple{N,Int} where N,CartesianIndex})
+                    start::Union{NTuple{N,Int} where N, CartesianIndex},
+                    count::Union{NTuple{N,Int} where N, CartesianIndex} )
 
     Set the selection for reading or alter the selection for writing if define_variable was called with constant_dims = false.
 """
 function set_selection(variable::Variable,
-                       start::NTuple{N,Int} where {N,CartesianIndex},
-                       count::NTuple{N,Int} where {N,CartesianIndex} )
+                       start::Union{NTuple{N,Int} where N, CartesianIndex}
+                       count::Union{NTuple{N,Int} where N, CartesianIndex} )
 
     @assert length(start) == length(count)
     ndims = length(start)
@@ -289,4 +289,3 @@ function set_selection(variable::Variable,
     Error(err) ≠ error_none && return nothing
     return ()
 end
-
