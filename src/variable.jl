@@ -276,7 +276,7 @@ export set_selection
     Set the selection for reading or alter the selection for writing if define_variable was called with constant_dims = false.
 """
 function set_selection(variable::Variable,
-                       start::Union{NTuple{N,Int} where N, CartesianIndex}
+                       start::Union{NTuple{N,Int} where N, CartesianIndex},
                        count::Union{NTuple{N,Int} where N, CartesianIndex} )
 
     @assert length(start) == length(count)
