@@ -141,8 +141,10 @@ end
                     launch::Mode=mode_deferred)
     err::Error
 
-Schedule writing a variable to file. Call `perform_puts!` to perform
-the actual write operations.
+Schedule writing a variable to file. The buffer `data` must be
+contiguous in memory.
+
+Call `perform_puts!` to perform the actual write operations.
 
 The reference/array/pointer target must not be modified before
 `perform_puts!` is called. It is most efficenty to schedule multiple
@@ -152,7 +154,7 @@ function Base.put!(engine::Engine, variable::Variable,
                    data::Union{Ref,DenseArray,SubArray,Ptr},
                    launch::Mode=mode_deferred)
     if data isa AbstractArray && ndims(data) ≥ 1 && stride(data, 1) ≠ 1
-        throw(ArgumentError("ADIOS2: `data` argument to `put!` must be a contiguous array"))
+        throw(ArgumentError("ADIOS2: `data` argument to `put!` must be contiguous"))
     end
     push!(engine.put_sources, data)
     err = ccall((:adios2_put, libadios2_c), Cint,
@@ -185,6 +187,8 @@ end
     err::Error
 
 Schedule reading a variable from file into the provided buffer `data`.
+`data` must be contiguous in memory.
+
 Call `perform_gets` to perform the actual read operations.
 
 The reference/array/pointer target must not be modified before
@@ -195,7 +199,7 @@ function Base.get(engine::Engine, variable::Variable,
                   data::Union{Ref,DenseArray,SubArray,Ptr},
                   launch::Mode=mode_deferred)
     if data isa AbstractArray && ndims(data) ≥ 1 && stride(data, 1) ≠ 1
-        throw(ArgumentError("ADIOS2: `data` argument to `get` must be a contiguous array"))
+        throw(ArgumentError("ADIOS2: `data` argument to `get` must be contiguous"))
     end
     push!(engine.get_targets, data)
     T = type(variable)
