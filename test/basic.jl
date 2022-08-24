@@ -139,10 +139,10 @@ const filename = "$dirname/test.bp"
     # Define some attributes
     attributes = Dict()
     for T in Type[String, Float32, Float64,
-             # Currently broken, see
-             # <https://github.com/ornladios/ADIOS2/issues/2734>
-             # Complex{Float32}, Complex{Float64},
-             Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
+         # Currently broken, see
+         # <https://github.com/ornladios/ADIOS2/issues/2734>
+         # Complex{Float32}, Complex{Float64},
+                  Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
         val = T ≡ String ? "42" : T(42)
         val::T
 
@@ -239,7 +239,8 @@ const filename = "$dirname/test.bp"
                         T <: Union{AbstractFloat,Complex} ? T(s) : s % T)::T
             end
             arr = T[mkT(T, ten(Tuple(i), 0)) for i in CartesianIndices(sz)]
-            err = put!(engine, var, arr)
+            arr1 = rand(Bool) ? arr : @view arr[begin:end]
+            err = put!(engine, var, arr1)
             @test err ≡ error_none
         else
             error("internal error")
@@ -490,7 +491,8 @@ GC.gc(true)
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             co = count(var)
             arr = Array{T}(undef, Tuple(co))
-            err = get(engine, var, arr)
+            arr1 = rand(Bool) ? arr : @view arr[begin:end]
+            err = get(engine, var, arr1)
             @test err ≡ error_none
             buffers[(si, D, len, T)] = arr
         else

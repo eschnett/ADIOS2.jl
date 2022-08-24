@@ -150,7 +150,7 @@ end
 export start
 """
     var_start = start(variable::Variable)
-    var_start::Union{Nothing,NTuple{N,Int} where N,}
+    var_start::Union{Nothing,NTuple{N,Int} where N}
 
 Retrieve current variable start.
 """
