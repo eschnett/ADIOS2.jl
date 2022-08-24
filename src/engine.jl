@@ -153,8 +153,13 @@ The reference/array/pointer target must not be modified before
 function Base.put!(engine::Engine, variable::Variable,
                    data::Union{Ref,DenseArray,SubArray,Ptr},
                    launch::Mode=mode_deferred)
-    if data isa AbstractArray && ndims(data) ≥ 1 && stride(data, 1) ≠ 1
-        throw(ArgumentError("ADIOS2: `data` argument to `put!` must be contiguous"))
+    if data isa AbstractArray && length(data) ≠ 0
+        np = 1
+        for (str, sz) in zip(strides(data), size(data))
+            str ≠ np &&
+                throw(ArgumentError("ADIOS2: `data` argument to `put!` must be contiguous"))
+            np *= sz
+        end
     end
     push!(engine.put_sources, data)
     err = ccall((:adios2_put, libadios2_c), Cint,
@@ -198,8 +203,13 @@ The reference/array/pointer target must not be modified before
 function Base.get(engine::Engine, variable::Variable,
                   data::Union{Ref,DenseArray,SubArray,Ptr},
                   launch::Mode=mode_deferred)
-    if data isa AbstractArray && ndims(data) ≥ 1 && stride(data, 1) ≠ 1
-        throw(ArgumentError("ADIOS2: `data` argument to `get` must be contiguous"))
+    if data isa AbstractArray && length(data) ≠ 0
+        np = 1
+        for (str, sz) in zip(strides(data), size(data))
+            str ≠ np &&
+                throw(ArgumentError("ADIOS2: `data` argument to `get` must be contiguous"))
+            np *= sz
+        end
     end
     push!(engine.get_targets, data)
     T = type(variable)
