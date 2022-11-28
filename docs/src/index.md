@@ -4,6 +4,33 @@
 interface to the [ADIOS2](https://github.com/ornladios/ADIOS2), the
 Adaptable Input Output System version 2.
 
+## Installation
+
+```julia
+julia>]
+pkg> add ADIOS2
+```
+
+ADIOS2 binaries are downloaded by default using the `ADIOS2_jll` package
+
+## Using a custom or system provided ADIOS2 library
+Set the environment variable `JULIA_ADIOS2_PATH` to the top-level installation directory for ADIOS2, 
+i.e. the `libadios2_c` and `libadios2_c_mpi` (if using MPI-enabled ADIOS2) libraries should be located 
+under `$JULIA_ADIOS2_PATH/lib` or `$JULIA_ADIOS2_PATH/lib64`. Then run `import Pkg; Pkg.build("ADIOS2")`. 
+This is preferred in high-performance computing (HPC) systems for system-wide installations for libraries built against
+vendor MPI implementations. It is highly recommended that MPIPreferences points at the system MPI implementation used to build ADIOS2.
+
+Example:
+
+```sh
+$ export JULIA_ADIOS2_PATH=/opt/adios2/2.8.3
+```
+Then in Julia, run:
+
+```julia
+pkg> build
+```
+
 ## Basic API
 
 ### Types

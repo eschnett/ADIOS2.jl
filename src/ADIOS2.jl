@@ -1,7 +1,15 @@
 module ADIOS2
 
-using ADIOS2_jll
 using MPI
+using Libdl
+
+const depsfile = joinpath(@__DIR__, "..", "deps", "deps.jl")
+if isfile(depsfile)
+    include(depsfile)
+else
+    error("ADIOS2 is not properly installed. Please run Pkg.build(\"ADIOS2\") ",
+          "and restart Julia.")
+end
 
 ### Helpers
 
@@ -22,5 +30,10 @@ include("attribute.jl")
 include("engine.jl")
 
 include("highlevel.jl")
+
+function __init__()
+    check_deps()
+    return
+end
 
 end

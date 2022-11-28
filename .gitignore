@@ -1,2 +1,7 @@
 Manifest.toml
 example.bp
+
+# generated files under deps
+build.log
+deps.jl
+
