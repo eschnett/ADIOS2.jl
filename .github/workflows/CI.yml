@@ -53,6 +53,14 @@ jobs:
             ${{runner.os}}-test-${{env.cache-name}}-
             ${{runner.os}}-test-
             ${{runner.os}}-
+      - name: use OpenMPI_jll
+        run: |
+          julia --project=@. -e '
+            using Pkg
+            Pkg.add("MPIPreferences")
+            using MPIPreferences
+            MPIPreferences.use_jll_binary("OpenMPI_jll", export_prefs=true)'
+        if: matrix.os == 'macOS-latest'
       - uses: julia-actions/julia-buildpkg@v1
         env:
           PYTHON:
