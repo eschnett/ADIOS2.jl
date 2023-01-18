@@ -33,6 +33,7 @@ end
 include("internal.jl")
 include("basic.jl")
 include("highlevel.jl")
+include("write_read_selection.jl")
 
 ################################################################################
 
