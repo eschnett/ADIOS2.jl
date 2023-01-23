@@ -84,8 +84,6 @@ end
         for T in
             Type[Float32, Float64, Complex{Float32}, Complex{Float64}, Int8,
                  Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
-
-            # @TODO: 
             var_T = inquire_variable(io, string(T))
             @test var_T isa Variable
             set_selection(var_T, sel_start, sel_count)
@@ -100,6 +98,46 @@ end
 
         end_step(reader)
     end
+    close(reader)
+    finalize(adios)
+end
+
+@testset "File read step selection nd global arrays" begin
+    # Set up ADIOS
+    if use_mpi
+        adios = adios_init_mpi(comm)
+    else
+        adios = adios_init_serial()
+    end
+
+    io = declare_io(adios, "io_reader_set_step")
+
+    sel_start = (2, comm_rank * 10 + 2)
+    sel_count = (2, 2)
+
+    # open engine
+    reader = open(io, filename_sel, mode_read)
+
+    for T in
+        Type[Float32, Float64, Complex{Float32}, Complex{Float64}, Int8,
+             Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
+        var_T = inquire_variable(io, string(T))
+        @test var_T isa Variable
+        set_selection(var_T, sel_start, sel_count)
+
+        for step in 1:3
+            # step start = step-1 (adios is zero based) and 1 step count
+            set_step_selection(var_T, step - 1, 1)
+
+            data_in = Array{T,2}(undef, 2, 2)
+            get(reader, var_T, data_in, mode_sync)
+
+            @test first(data_in) == comm_rank + step
+            allsame(x) = all(y -> y == first(x), x)
+            @test allsame(data_in)
+        end
+    end
+
     close(reader)
     finalize(adios)
 end
