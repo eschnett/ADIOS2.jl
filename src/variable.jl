@@ -38,6 +38,40 @@ function set_block_selection(variable::Variable, block_id::Int)
     return ()
 end
 
+export set_selection
+"""
+    set_selection(variable::Variable, start::Union{Nothing,NTuple{N,Int} where N,
+    CartesianIndex}, count::Union{Nothing,NTuple{N,Int} where N,
+    CartesianIndex})
+"""
+function set_selection(variable::Variable,
+                       start::Union{Nothing,NTuple{N,Int} where N,
+                                    CartesianIndex}=nothing,
+                       count::Union{Nothing,NTuple{N,Int} where N,
+                                    CartesianIndex}=nothing)
+    D = ndims(variable)
+    err = ccall((:adios2_set_selection, libadios2_c), Cint,
+                (Ptr{Cvoid}, Csize_t, Ptr{Csize_t}, Ptr{Csize_t}), variable.ptr,
+                D,
+                start ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(start))...],
+                count ≡ nothing ? C_NULL : Csize_t[reverse(Tuple(count))...])
+    Error(err) ≠ error_none && return nothing
+end
+
+export set_step_selection
+"""
+    set_step_selection(variable::Variable, step_start::Int, step_count::Int)
+    Only works with file-based engines, not streaming engines (e.g. does not work with SST)
+"""
+function set_step_selection(variable::Variable, step_start::Int,
+                            step_count::Int)
+    err = ccall((:adios2_set_step_selection, libadios2_c), Cint,
+                (Ptr{Cvoid}, Csize_t, Csize_t), variable.ptr, step_start,
+                step_count)
+    Error(err) ≠ error_none && return nothing
+    return ()
+end
+
 export name
 """
     var_name = name(variable::Variable)
