@@ -16,6 +16,23 @@ function Base.show(io::IO, ::MIME"text/plain", aio::AIO)
     return print(io, "AIO(0x$(string(UInt(aio.ptr); base=16)))")
 end
 
+export set_engine
+"""
+    err = set_engine(io::AIO, engine_type::AbstractString)
+    err::Error
+
+Set the engine type for current io handler.
+
+# Arguments
+- `io`: handler
+- `engine_type`: predefined engine type, default is bpfile
+"""
+function set_engine(io::AIO, engine_type::AbstractString)
+    err = ccall((:adios2_set_engine, libadios2_c), Cint, (Ptr{Cvoid}, Cstring),
+                io.ptr, engine_type)
+    return Error(err)
+end
+
 export define_variable
 """
     variable = define_variable(io::AIO, name::AbstractString, type::Type,
@@ -388,7 +405,7 @@ export engine_type
     type = engine_type(io::AIO)
     type::Union{Nothing,String}
 
-Return engine type string.
+Return engine type string. See [`set_engine`](@ref).
 """
 function engine_type(io::AIO)
     size = Ref{Csize_t}()

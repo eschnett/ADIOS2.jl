@@ -1,8 +1,24 @@
 using ADIOS2
 using Base.Filesystem
+using Libdl
 using MPI
 using Printf
 using Test
+
+################################################################################
+# Find ADIOS2 version
+
+# There is no official way to find the ADIOS2 library version. Instead
+# we test whether certain functions exist.
+const adios2_version = let
+    lib = dlopen(ADIOS2.libadios2_c)
+    if dlsym(lib, :adios2_declare_io_order;
+             throw_error=false) == Ptr{Cvoid}()
+        v"2.8.0"
+    else
+        v"2.9.0"
+    end
+end
 
 ################################################################################
 

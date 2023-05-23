@@ -222,6 +222,7 @@ const filename = "$dirname/test.bp"
 
     # Write the file
     engine = open(io, filename, mode_write)
+    @test engine isa Engine
 
     # Schedule variables for writing
     for ((si, D, len, T), (nm, var)) in variables
@@ -254,8 +255,8 @@ const filename = "$dirname/test.bp"
     # Minima and maxima are only available when reading a file
     # for ((si, D, T), (nm, var)) in variables
     #     val = T ≡ String ? "42" : T(42)
-    #     @test minimum(var) == val
-    #     @test maximum(var) == val
+    #      @test minimum(var) == val
+    #      @test maximum(var) == val
     # end
 
     err = close(engine)
@@ -266,8 +267,6 @@ end
 
 # Call gc to test finalizing the Adios object
 GC.gc(true)
-
-# run(`/Users/eschnett/src/CarpetX/Cactus/view/bin/bpls -aD $filename`)
 
 @testset "File read tests" begin
     # Set up ADIOS
@@ -282,7 +281,16 @@ GC.gc(true)
     @test io isa AIO
 
     # Open the file
-    engine = open(io, filename, mode_read)
+    if adios2_version < v"2.9.0"
+        # We need to use `mode_read` for ADIOS2 <2.9, and `mode_readRandomAccess` for ADIOS2 ≥2.9
+        engine = open(io, filename, mode_read)
+    else
+        engine = open(io, filename, mode_readRandomAccess)
+    end
+    @test engine isa Engine
+
+    etype = engine_type(io)
+    @test etype == "File"
 
     # Inquire about all variables
     variables = Dict()
@@ -356,8 +364,8 @@ GC.gc(true)
             sh = cs .* sz
             st = cr .* sz
             co = sz
-            # Empty global arrays are mis-interpreted as global values
-            if len == 0
+            if adios2_version < v"2.9.0" && len == 0
+                # Empty global arrays are mis-interpreted as global values
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
                 @test shape(var1) == ()
@@ -380,8 +388,8 @@ GC.gc(true)
             end
         elseif si == shapeid_local_array
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
-            # Empty local arrays are mis-interpreted as global values
-            if len == 0
+            if adios2_version < v"2.9.0" && len == 0
+                # Empty local arrays are mis-interpreted as global values
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
                 @test shape(var1) == ()
@@ -465,8 +473,8 @@ GC.gc(true)
             @test size(attr) == 1
             @test data(attr) == val
         else
-            # Length-1 non-string attribute arrays are mis-interpreted as values
-            if T ≢ String && len == 1
+            if adios2_version < v"2.9.0" && T ≢ String && len == 1
+                # Length-1 non-string attribute arrays are mis-interpreted as values
                 @test is_value(attr)
                 @test size(attr) == len
                 vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
@@ -527,8 +535,8 @@ GC.gc(true)
                         T <: Union{AbstractFloat,Complex} ? T(s) : s % T)::T
             end
             arr = T[mkT(T, ten(Tuple(i), 0)) for i in CartesianIndices(sz)]
-            # Empty global arrays are mis-interpreted as global values
-            if len == 0
+            if adios2_version < v"2.9.0" && len == 0
+                # Empty global arrays are mis-interpreted as global values
                 # There is a spurious value `0`
                 @test buffers[(si, D, len, T)] == fill(T(0))
             else
@@ -549,5 +557,6 @@ GC.gc(true)
     err = adios_finalize(adios)
     @test err ≡ error_none
 end
+
 # Call gc to test finalizing the Adios object
 GC.gc(true)

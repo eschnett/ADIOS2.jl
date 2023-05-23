@@ -85,27 +85,31 @@ const AdiosType = Union{AbstractString,Float32,Float64,Complex{Float32},
                         UInt32,UInt64}
 
 export Mode
-export mode_undefined, mode_write, mode_read, mode_append, mode_deferred,
-       mode_sync
+export mode_undefined, mode_write, mode_read, mode_append,
+       mode_readRandomAccess, mode_deferred, mode_sync
 """
     @enum Mode begin
         mode_undefined
         mode_write
         mode_read
         mode_append
+        mode_readRandomAccess
+
         mode_deferred
         mode_sync
     end
 
-Mode specifies for various functions. `write`, `read`, `append` are
-used for file operations, `deferred`, `sync` are used for get and put
-operations.
+Mode specifies for various functions. `write`, `read`, `append`, and
+`readRandomAccess` are used for file operations. `deferred` and `sync` are used
+for get and put operations.
 """
 @enum Mode begin
     mode_undefined = 0
     mode_write = 1
     mode_read = 2
     mode_append = 3
+    mode_readRandomAccess = 6   # ADIOS2 2.9
+
     mode_deferred = 4
     mode_sync = 5
 end

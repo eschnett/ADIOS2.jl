@@ -38,7 +38,12 @@ if comm_rank == 0
     # run(`/Users/eschnett/src/CarpetX/Cactus/view/bin/bpls -aD $filename2`)
 
     @testset "High-level read tests " begin
-        file = adios_open_serial(filename2, mode_read)
+        if adios2_version < v"2.9.0"
+            # We need to use `mode_read` for ADIOS2 <2.9, and `mode_readRandomAccess` for ADIOS2 ≥2.9
+            file = adios_open_serial(filename2, mode_read)
+        else
+            file = adios_open_serial(filename2, mode_readRandomAccess)
+        end
 
         @test Set(adios_subgroup_names(file, "")) == Set(["g1"])
         @test_broken Set(adios_subgroup_names(file, "g1")) == Set(["g2"])
@@ -51,10 +56,18 @@ if comm_rank == 0
               Set(["g1/v6/a6"])
 
         @test adios_attribute_data(file, "a1") == float(π)
-        @test adios_attribute_data(file, "a2") == float(π)
+        if adios2_version < v"2.9.0"
+            @test adios_attribute_data(file, "a2") == float(π)
+        else
+            @test adios_attribute_data(file, "a2") == [float(π)]
+        end
         @test adios_attribute_data(file, "a3") == [float(π), 0]
         @test adios_attribute_data(file, "v4", "a4") == float(π)
-        @test adios_attribute_data(file, "v5/a5") == float(π)
+        if adios2_version < v"2.9.0"
+            @test adios_attribute_data(file, "v5/a5") == float(π)
+        else
+            @test adios_attribute_data(file, "v5/a5") == [float(π)]
+        end
         @test adios_attribute_data(file, "g1/v6", "a6") == [float(π), 0]
 
         @test Set(adios_all_variable_names(file)) ==

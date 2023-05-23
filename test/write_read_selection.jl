@@ -33,6 +33,10 @@ end
 
     io = declare_io(adios, "io_writer")
     @test io isa AIO
+
+    # The tests below do not work with the BP5 format (see <https://github.com/ornladios/ADIOS2/issues/3629>)
+    set_engine(io, "BP4")
+
     count = (10, 10)
     start = (0, comm_rank * 10)
     shape = (10, comm_size * 10)
@@ -119,8 +123,8 @@ end
     reader = open(io, filename_sel, mode_read)
 
     for T in
-        Type[Float32, Float64, Complex{Float32}, Complex{Float64}, Int8,
-             Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
+        Type[Float32, Float64, Complex{Float32}, Complex{Float64}, Int8, Int16,
+             Int32, Int64, UInt8, UInt16, UInt32, UInt64]
         var_T = inquire_variable(io, string(T))
         @test var_T isa Variable
         set_selection(var_T, sel_start, sel_count)
