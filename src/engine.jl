@@ -238,7 +238,8 @@ function Base.get(engine::Engine, variable::Variable,
         throw(ArgumentError("ADIOS2: `data` length must be at least as large as the count of the variable"))
     T = type(variable)
     if T ≡ String
-        throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
+        eltype(data) <: AbstractString ||
+            throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
         buffer = fill(Cchar(0), string_array_element_max_size + 1)
         err = ccall((:adios2_get, libadios2_c), Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
