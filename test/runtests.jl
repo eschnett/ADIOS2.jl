@@ -1,6 +1,5 @@
 using ADIOS2
 using Base.Filesystem
-using Libdl
 using MPI
 using Printf
 using Test
@@ -9,14 +8,20 @@ using Test
 # Find ADIOS2 version
 
 # There is no official way to find the ADIOS2 library version. Instead
-# we test whether certain functions exist.
+# we check the default engine type after opening a file.
 const ADIOS2_VERSION = let
-    lib = dlopen(ADIOS2.libadios2_c)
-    if dlsym(lib, :adios2_declare_io_order;
-             throw_error=false) == Ptr{Cvoid}()
+    adios = adios_init_serial()
+    io = declare_io(adios, "IO")
+    filename = tempname()
+    engine = open(io, filename, mode_write)
+    etype = type(engine)
+    close(engine)
+    if etype == "BP4Writer"
         v"2.8.0"
-    else
+    elseif etype == "BP5Writer"
         v"2.9.0"
+    else
+        @assert false
     end
 end
 

@@ -3,7 +3,7 @@
 const rankstr = @sprintf "%06d" comm_rank
 
 if comm_rank == comm_root
-    const dirname = Filesystem.mktempdir(; cleanup=true)
+    const dirname = Filesystem.mktempdir()
 end
 if use_mpi
     if comm_rank == comm_root

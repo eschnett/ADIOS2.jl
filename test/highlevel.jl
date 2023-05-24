@@ -3,7 +3,7 @@
 makearray(D, val) = fill(val, ntuple(d -> 1, D))
 
 if comm_rank == 0
-    const dirname2 = Filesystem.mktempdir(; cleanup=true)
+    const dirname2 = Filesystem.mktempdir()
     const filename2 = "$dirname2/test.bp"
 
     @testset "High-level write tests " begin
