@@ -10,7 +10,7 @@ using Test
 
 # There is no official way to find the ADIOS2 library version. Instead
 # we test whether certain functions exist.
-const adios2_version = let
+const ADIOS2_VERSION = let
     lib = dlopen(ADIOS2.libadios2_c)
     if dlsym(lib, :adios2_declare_io_order;
              throw_error=false) == Ptr{Cvoid}()

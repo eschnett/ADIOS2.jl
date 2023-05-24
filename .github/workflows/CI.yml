@@ -60,7 +60,7 @@ jobs:
             ${{runner.os}}-
       - name: use OpenMPI_jll
         run: |
-          julia --project=@. -e '
+          julia --project=@. --eval '
             using Pkg
             Pkg.add("MPIPreferences")
             using MPIPreferences
@@ -73,7 +73,7 @@ jobs:
         continue-on-error: ${{matrix.version == 'nightly'}}
       - name: Install mpiexecjl
         run: |
-          julia --project=@. -e '
+          julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
           echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&

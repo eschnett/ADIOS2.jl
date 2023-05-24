@@ -14,6 +14,9 @@ if use_mpi
 end
 const filename = "$dirname/test.bp"
 
+# "BP3", "BP4", "BP5", "HDF5", "SST", "SSC", "DataMan", "Inline", "Null"
+const ENGINE_TYPE = "BP4"
+
 @testset "File write tests" begin
     # Set up ADIOS
     if use_mpi
@@ -217,8 +220,12 @@ const filename = "$dirname/test.bp"
         end
     end
 
+    err = set_engine(io, ENGINE_TYPE)
+    @test err ≡ error_none
+
     etype = engine_type(io)
-    @test etype == "File"
+    # @test etype == "File"
+    @test etype == ENGINE_TYPE
 
     # Write the file
     engine = open(io, filename, mode_write)
@@ -240,7 +247,7 @@ const filename = "$dirname/test.bp"
                         T <: Union{AbstractFloat,Complex} ? T(s) : s % T)::T
             end
             arr = T[mkT(T, ten(Tuple(i), 0)) for i in CartesianIndices(sz)]
-            arr1 = rand(Bool) ? arr : @view arr[begin:end]
+            arr1 = rand(Bool) ? arr : @view arr[:]
             err = put!(engine, var, arr1)
             @test err ≡ error_none
         else
@@ -281,7 +288,7 @@ GC.gc(true)
     @test io isa AIO
 
     # Open the file
-    if adios2_version < v"2.9.0"
+    if ADIOS2_VERSION < v"2.9.0"
         # We need to use `mode_read` for ADIOS2 <2.9, and `mode_readRandomAccess` for ADIOS2 ≥2.9
         engine = open(io, filename, mode_read)
     else
@@ -289,8 +296,12 @@ GC.gc(true)
     end
     @test engine isa Engine
 
+    err = set_engine(io, ENGINE_TYPE)
+    @test err ≡ error_none
+
     etype = engine_type(io)
-    @test etype == "File"
+    # @test etype == "File"
+    @test etype == ENGINE_TYPE
 
     # Inquire about all variables
     variables = Dict()
@@ -354,9 +365,17 @@ GC.gc(true)
             # Local values are re-interpreted as global arrays
             @test shapeid(var1) == shapeid_global_array
             @test ndims(var1) == 1
-            @test shape(var1) == (1,)
+            if ENGINE_TYPE == "BP4"
+                @test shape(var1) == (1,)
+            else
+                @test shape(var1) == (comm_size,)
+            end
             @test start(var1) == (0,)
-            @test count(var1) == (1,)
+            if ENGINE_TYPE == "BP4"
+                @test count(var1) == (1,)
+            else
+                @test count(var1) == (comm_size,)
+            end
         elseif si == shapeid_global_array
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
             cs = ntuple(d -> d < D ? 1 : comm_size, D)
@@ -364,7 +383,7 @@ GC.gc(true)
             sh = cs .* sz
             st = cr .* sz
             co = sz
-            if adios2_version < v"2.9.0" && len == 0
+            if ENGINE_TYPE == "BP4" && len == 0
                 # Empty global arrays are mis-interpreted as global values
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
@@ -388,7 +407,7 @@ GC.gc(true)
             end
         elseif si == shapeid_local_array
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
-            if adios2_version < v"2.9.0" && len == 0
+            if ENGINE_TYPE == "BP4" && len == 0
                 # Empty local arrays are mis-interpreted as global values
                 @test shapeid(var1) == shapeid_global_value
                 @test ndims(var1) == 0
@@ -473,7 +492,7 @@ GC.gc(true)
             @test size(attr) == 1
             @test data(attr) == val
         else
-            if adios2_version < v"2.9.0" && T ≢ String && len == 1
+            if ENGINE_TYPE == "BP4" && T ≢ String && len == 1
                 # Length-1 non-string attribute arrays are mis-interpreted as values
                 @test is_value(attr)
                 @test size(attr) == len
@@ -492,14 +511,19 @@ GC.gc(true)
     buffers = Dict()
     for ((si, D, len, T), (nm, var)) in variables
         if si ∈ (shapeid_global_value, shapeid_local_value)
-            ref = T ≡ String ? Ref{Vector{Cchar}}() : Ref{T}()
+            # Local values are re-interpreted as global arrays
+            if ENGINE_TYPE == "BP4" || comm_size == 1
+                ref = Ref{T}()
+            else
+                ref = Array{T}(undef, comm_size)
+            end
             err = get(engine, var, ref)
             @test err ≡ error_none
             buffers[(si, D, len, T)] = ref
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             co = count(var)
-            arr = Array{T}(undef, Tuple(co))
-            arr1 = rand(Bool) ? arr : @view arr[begin:end]
+            arr = Array{T}(undef, co)
+            arr1 = rand(Bool) ? arr : @view arr[:]
             err = get(engine, var, arr1)
             @test err ≡ error_none
             buffers[(si, D, len, T)] = arr
@@ -519,12 +543,7 @@ GC.gc(true)
         T ≡ String && continue
         if si ∈ (shapeid_global_value, shapeid_local_value)
             val = T ≡ String ? "42" : T(42)
-            if T ≡ String
-                str = unsafe_string(pointer(buffers[(si, D, len, T)][]))
-                @test str == val
-            else
-                @test buffers[(si, D, len, T)][] == val
-            end
+            @test all(buffers[(si, D, len, T)] .== val)
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
             # Construct a single number from a tuple
@@ -535,7 +554,7 @@ GC.gc(true)
                         T <: Union{AbstractFloat,Complex} ? T(s) : s % T)::T
             end
             arr = T[mkT(T, ten(Tuple(i), 0)) for i in CartesianIndices(sz)]
-            if adios2_version < v"2.9.0" && len == 0
+            if ENGINE_TYPE == "BP4" && len == 0
                 # Empty global arrays are mis-interpreted as global values
                 # There is a spurious value `0`
                 @test buffers[(si, D, len, T)] == fill(T(0))

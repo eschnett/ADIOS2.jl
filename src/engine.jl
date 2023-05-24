@@ -147,7 +147,7 @@ contiguous in memory.
 Call `perform_puts!` to perform the actual write operations.
 
 The reference/array/pointer target must not be modified before
-`perform_puts!` is called. It is most efficenty to schedule multiple
+`perform_puts!` is called. It is most efficient to schedule multiple
 `put!` operations before calling `perform_puts!`.
 """
 function Base.put!(engine::Engine, variable::Variable,
@@ -161,7 +161,21 @@ function Base.put!(engine::Engine, variable::Variable,
             np *= sz
         end
     end
-    push!(engine.put_sources, data)
+    T = type(variable)
+    if T ≡ String
+        eltype(data) <: Union{Cchar,Cuchar} ||
+            throw(ArgumentError("ADIOS2: `data` element type for string variables must be either `Cchar` or `Cuchar`"))
+    else
+        eltype(data) ≡ T ||
+            throw(ArgumentError("ADIOS2: `data` element type for non-string variables must be the same as the variable type"))
+    end
+    co = count(variable)
+    len = data isa Ptr ? typemax(Int) : length(data)
+    (co ≡ nothing ? 1 : prod(co)) ≤ len ||
+        throw(ArgumentError("ADIOS2: `data` length must be at least as large as the count of the variable"))
+    if launch ≡ mode_deferred
+        push!(engine.put_sources, (engine, variable, data))
+    end
     err = ccall((:adios2_put, libadios2_c), Cint,
                 (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
                 variable.ptr, data, Cint(launch))
@@ -170,6 +184,13 @@ end
 function Base.put!(engine::Engine, variable::Variable, data::AdiosType,
                    launch::Mode=mode_deferred)
     return put!(engine, variable, Ref(data), launch)
+end
+function Base.put!(engine::Engine, variable::Variable, data::AbstractString,
+                   launch::Mode=mode_deferred)
+    if launch ≡ mode_deferred
+        push!(engine.put_sources, data)
+    end
+    return put!(engine, variable, pointer(data), launch)
 end
 
 export perform_puts!
@@ -197,13 +218,13 @@ Schedule reading a variable from file into the provided buffer `data`.
 Call `perform_gets` to perform the actual read operations.
 
 The reference/array/pointer target must not be modified before
-`perform_gets` is called. It is most efficenty to schedule multiple
+`perform_gets` is called. It is most efficient to schedule multiple
 `get` operations before calling `perform_gets`.
 """
 function Base.get(engine::Engine, variable::Variable,
                   data::Union{Ref,DenseArray,SubArray,Ptr},
                   launch::Mode=mode_deferred)
-    if data isa AbstractArray && length(data) ≠ 0
+    if data isa AbstractArray && !isempty(data)
         np = 1
         for (str, sz) in zip(strides(data), size(data))
             str ≠ np &&
@@ -211,18 +232,38 @@ function Base.get(engine::Engine, variable::Variable,
             np *= sz
         end
     end
-    push!(engine.get_targets, data)
+    co = count(variable)
+    len = data isa Ptr ? typemax(Int) : length(data)
+    (co ≡ nothing ? 1 : prod(co)) ≤ len ||
+        throw(ArgumentError("ADIOS2: `data` length must be at least as large as the count of the variable"))
     T = type(variable)
     if T ≡ String
-        buffer = fill(Cchar(0), string_array_element_max_size)
+        throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
+        buffer = fill(Cchar(0), string_array_element_max_size + 1)
         err = ccall((:adios2_get, libadios2_c), Cint,
-                    (Cstring, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
+                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
                     variable.ptr, buffer, Cint(launch))
-        data[] = buffer
+        if launch ≡ mode_deferred
+            push!(engine.get_targets, (engine, variable))
+            if data isa Ref
+                push!(engine.get_tasks,
+                      () -> data[] = unsafe_string(pointer(buffer)))
+            else
+                push!(engine.get_tasks,
+                      () -> data[begin] = unsafe_string(pointer(buffer)))
+            end
+        else
+            data[] = unsafe_string(pointer(buffer))
+        end
     else
+        eltype(data) ≡ T ||
+            throw(ArgumentError("ADIOS2: `data` element type for non-string variables must be the same as the variable type"))
         err = ccall((:adios2_get, libadios2_c), Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
                     variable.ptr, data, Cint(launch))
+        if launch ≡ mode_deferred
+            push!(engine.get_targets, (engine, variable, data))
+        end
     end
     return Error(err)
 end

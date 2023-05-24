@@ -34,9 +34,6 @@ end
     io = declare_io(adios, "io_writer")
     @test io isa AIO
 
-    # The tests below do not work with the BP5 format (see <https://github.com/ornladios/ADIOS2/issues/3629>)
-    set_engine(io, "BP4")
-
     count = (10, 10)
     start = (0, comm_rank * 10)
     shape = (10, comm_size * 10)
@@ -120,7 +117,12 @@ end
     sel_count = (2, 2)
 
     # open engine
-    reader = open(io, filename_sel, mode_read)
+    if ADIOS2_VERSION < v"2.9.0"
+        # We need to use `mode_read` for ADIOS2 <2.9, and `mode_readRandomAccess` for ADIOS2 ≥2.9
+        reader = open(io, filename_sel, mode_read)
+    else
+        reader = open(io, filename_sel, mode_readRandomAccess)
+    end
 
     for T in
         Type[Float32, Float64, Complex{Float32}, Complex{Float64}, Int8, Int16,
