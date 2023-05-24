@@ -13,11 +13,12 @@ jobs:
             os: "ubuntu-latest"
             version: "1.9"
             prefix: $HOME/.julia/bin/mpiexecjl2
-          - arch: "x64"
-            os: "windows-latest"
-            version: "1.9"
-            # prefix: $HOME/.julia/bin/mpiexecjl2
-            prefix: # MPI does not seem to work on Windows
+          # Something is broken on Windows; ADIOS2_jll cannot be loaded
+          # - arch: "x64"
+          #   os: "windows-latest"
+          #   version: "1.9"
+          #   prefix: $HOME/.julia/bin/mpiexecjl2
+          #   prefix: # MPI does not seem to work on Windows
           - arch: "x64"
             os: "macOS-latest"
             version: "1.9"
