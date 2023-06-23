@@ -52,7 +52,7 @@ else
     isempty(libadios2_c) && error("libadios2_c could not be found")
 
     isempty(libadios2_c_mpi) &&
-        warning("libadios2_c_mpi could not be found, assuming ADIOS2 serial build")
+        @info "libadios2_c_mpi could not be found, assuming ADIOS2 serial build"
 
     libadios2_c_size = filesize(dlpath(libadios2_c))
 
