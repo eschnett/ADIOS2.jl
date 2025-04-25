@@ -518,11 +518,7 @@ GC.gc(true)
                 ref = Array{T}(undef, comm_size)
             end
             err = get(engine, var, ref)
-            if nm == "lvalue.p$rankstr.String"
-                @test_broken err ≡ error_none
-            else
-                @test err ≡ error_none
-            end
+            @test err ≡ error_none
             buffers[(si, D, len, T)] = ref
         elseif si ∈ (shapeid_global_array, shapeid_local_array)
             co = count(var)
