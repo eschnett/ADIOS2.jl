@@ -31,7 +31,7 @@ jobs:
           println("Pkg.develop")
           Pkg.develop(PackageSpec(path=pwd()))
           println("Pkg.build")
-          Pkg.build(PackageSpec(path=pwd()))
+          Pkg.build("ADIOS2")
           println("Pkg.instantiate")
           Pkg.instantiate()
       - name: Build and deploy
