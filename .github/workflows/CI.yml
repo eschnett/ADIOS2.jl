@@ -12,28 +12,27 @@ jobs:
           - arch: "aarch64"
             os: "macOS-latest"
             version: "1.11"
-            skipmpi: 'true'
+            skipmpi: 'true'     # Why does this not work in CI? This works locally.
           - arch: "x64"
             os: "macOS-latest"
             version: "1.11"
-            skipmpi: 'true'
+            skipmpi: 'true'     # Why does this not work in CI? This works locally.
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.11"
           - arch: "x64"
             os: "windows-latest"
             version: "1.11"
-            skipmpi: 'true'
+            skipmpi: 'true'     # MPI doesn't work on Windows
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.10"
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.9"
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.8"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.8"
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
