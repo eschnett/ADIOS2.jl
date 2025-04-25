@@ -58,6 +58,7 @@ adios_finalize
 
 ```@docs
 AIO
+set_engine
 define_variable
 inquire_variable
 inquire_all_variables
@@ -80,6 +81,9 @@ get_engine
 
 ```@docs
 Variable
+set_block_selection
+set_selection
+set_step_selection
 name(variable::Variable)
 type(variable::Variable)
 shapeid(variable::Variable)
