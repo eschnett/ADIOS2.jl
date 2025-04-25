@@ -50,7 +50,7 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
-        if: ${{matrix.skipmpi}} != 'true'
+        if: ${{matrix.skipmpi != 'true'}}
         run: |
           julia --project=@. --eval '
             using MPI
@@ -58,7 +58,7 @@ jobs:
           echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
           chmod a+x ~/.julia/bin/mpiexecjl2
       - uses: julia-actions/julia-runtest@v1
-        if: ${{matrix.skipmpi}} != 'true'
+        if: ${{matrix.skipmpi != 'true'}}
         with:
           prefix: $HOME/.julia/bin/mpiexecjl2
       - uses: julia-actions/julia-processcoverage@v1
