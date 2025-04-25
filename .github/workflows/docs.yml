@@ -28,9 +28,12 @@ jobs:
         shell: julia --color=yes --project=docs {0}
         run: |
           using Pkg
+          println("Pkg.develop")
           Pkg.develop(PackageSpec(path=pwd()))
+          println("Pkg.build)
+          Pkg.build(PackageSpec(path=pwd()))
+          println("Pkg.instantiate)
           Pkg.instantiate()
-          Pkg.build()
       - name: Build and deploy
         run: julia --color=yes --project=docs docs/make.jl
         env:
