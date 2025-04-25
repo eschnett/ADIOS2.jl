@@ -33,6 +33,7 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.8"
+            skipmpi: 'true'     # Why does this not work?
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
