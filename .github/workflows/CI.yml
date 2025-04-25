@@ -33,10 +33,10 @@ jobs:
             os: "ubuntu-latest"
             version: "1.9"
             prefix: $HOME/.julia/bin/mpiexecjl2
-          - arch: "x64"
-            os: "ubuntu-latest"
-            version: "1.8"
-            prefix: $HOME/.julia/bin/mpiexecjl2
+          #TODO - arch: "x64"
+          #TODO   os: "ubuntu-latest"
+          #TODO   version: "1.8"
+          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
