@@ -205,7 +205,10 @@ The variable is not written until `adios_perform_puts!` is called and
 the file is flushed or closed.
 """
 function adios_put!(file::AdiosFile, name::AbstractString, scalar::AdiosType)
-    var = define_variable(file.io, name, scalar)
+    var = inquire_variable(file.io, name)
+    if isnothing(var)
+        var = define_variable(file.io, name, scalar)
+    end
     put!(file.engine, var, scalar)
     return var
 end
@@ -228,7 +231,11 @@ function adios_put!(file::AdiosFile, name::AbstractString,
     # 0-dimensional arrays need to be passed as scalars
     ndims(array) == 0 &&
         return adios_put!(file, name, make_copy ? copy(array)[] : array[])
-    var = define_variable(file.io, name, array)
+
+    var = inquire_variable(file.io, name)
+    if isnothing(var)
+        var = define_variable(file.io, name, array)
+    end
     put!(file.engine, var, make_copy ? copy(array) : array)
     return var
 end
