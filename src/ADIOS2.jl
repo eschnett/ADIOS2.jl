@@ -30,6 +30,7 @@ include("attribute.jl")
 include("engine.jl")
 
 include("highlevel.jl")
+include("extended_highlevel/adios_load.jl")
 
 function __init__()
     check_deps()
