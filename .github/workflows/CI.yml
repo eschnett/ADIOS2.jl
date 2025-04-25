@@ -9,42 +9,42 @@ jobs:
     strategy:
       matrix:
         include:
-          #TODO - arch: "aarch64"
-          #TODO   os: "macOS-latest"
-          #TODO   version: "1.11"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "macOS-latest"
-          #TODO   version: "1.11"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "aarch64"
+            os: "macOS-latest"
+            version: "1.11"
+            prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "macOS-latest"
+            version: "1.11"
+            prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.11"
             prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "windows-latest"
-          #TODO   version: "1.11"
-          #TODO   prefix:             # MPI is not working on Windows
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.10"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.9"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.8"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.7"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
-          #TODO - arch: "x64"
-          #TODO   os: "ubuntu-latest"
-          #TODO   version: "1.6"
-          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "windows-latest"
+            version: "1.11"
+            prefix:             # MPI is not working on Windows
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.10"
+            prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.9"
+            prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.8"
+            prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.7"
+            prefix: $HOME/.julia/bin/mpiexecjl2
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.6"
+            prefix: $HOME/.julia/bin/mpiexecjl2
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
