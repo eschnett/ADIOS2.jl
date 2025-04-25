@@ -30,9 +30,9 @@ jobs:
           using Pkg
           println("Pkg.develop")
           Pkg.develop(PackageSpec(path=pwd()))
-          println("Pkg.build)
+          println("Pkg.build")
           Pkg.build(PackageSpec(path=pwd()))
-          println("Pkg.instantiate)
+          println("Pkg.instantiate")
           Pkg.instantiate()
       - name: Build and deploy
         run: julia --color=yes --project=docs docs/make.jl
