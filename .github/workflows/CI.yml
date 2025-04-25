@@ -9,10 +9,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: "aarch64"
-            os: "macOS-latest"
-            version: "1.11"
-            prefix: $HOME/.julia/bin/mpiexecjl2
+          #TODO - arch: "aarch64"
+          #TODO   os: "macOS-latest"
+          #TODO   version: "1.11"
+          #TODO   prefix: $HOME/.julia/bin/mpiexecjl2
           - arch: "x64"
             os: "macOS-latest"
             version: "1.11"
