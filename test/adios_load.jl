@@ -1,141 +1,173 @@
-@testset "adios_load " begin
+@testset "adios_load with steps" begin
     tmp_dir = Base.Filesystem.mktempdir()
 
+    bpName = "$tmp_dir/test.bp"
+
+    # Define test data
     nn = 3
+    scalar = rand()
+    vector = rand(nn)
+    matrix = rand(nn, nn)
+    array3D = rand(nn, nn, nn)
 
-    # write test.bp data
-    N_steps = 10
-    file = adios_open_serial("$tmp_dir/test.bp", mode_write)
-    for i in 0:(N_steps - 1)
-        begin_step(file.engine)
 
-        adios_put!(file, "step", i)
+    @testset "Write a test.bp file for test" begin
 
-        # group1 (all members filled with value 1)
-        adios_put!(file, "group1/scalar", 1)
-        adios_put!(file, "group1/vector", fill(1, nn))
-        adios_put!(file, "group1/matrix", fill(1, (nn, nn)))
-        adios_put!(file, "group1/Nd_array", fill(1, (nn, nn, nn)))
+        # write test.bp data
+        Nsteps = 10
+        file = adios_open_serial(bpName, mode_write)
+        for i in 0:(Nsteps - 1)
+            begin_step(file.engine)
 
-        # group2 (all members filled with value 2)
-        adios_put!(file, "group2/scalar", 2)
-        adios_put!(file, "group2/vector", fill(2, nn))
-        adios_put!(file, "group2/matrix", fill(2, (nn, nn)))
-        adios_put!(file, "group2/Nd_array", fill(2, (nn, nn, nn)))
+            adios_put!(file, "step", i)
 
-        # with complex names
-        adios_put!(file, "scalar_A", 1)
-        adios_put!(file, "scalar_B", 1)
-        adios_put!(file, "abc_scalar_123", 1)
-        adios_put!(file, "scalar_1234", 1)
-        adios_put!(file, "deep/in/nested/groups/scalar", 1)
-        adios_put!(file, "another/deep/in/nested/groups/scalar", 1)
+            # root-level variables
+            adios_put!(file, "scalar", scalar)
+            adios_put!(file, "vector", vector)
+            adios_put!(file, "matrix", matrix)
+            adios_put!(file, "array3D", array3D)
 
-        adios_perform_puts!(file)
+            # with complex names
+            adios_put!(file, "scalar_A", scalar)
+            adios_put!(file, "scalar_B", scalar)
+            adios_put!(file, "abc_scalar23", scalar)
+            adios_put!(file, "scalar234", scalar)
+            adios_put!(file, "deep/in/nested/groups/scalar", scalar)
+            adios_put!(file, "another/deep/in/nested/groups/scalar", scalar)
 
-        end_step(file.engine)
+            adios_perform_puts!(file)
+
+            end_step(file.engine)
+        end
+        close(file)
     end
-    close(file)
-
-    # read test.bp data using adios_load
-    file = adios_open_serial("$tmp_dir/test.bp", mode_readRandomAccess)
 
     @testset "Load all data at once" begin
+        file = adios_open_serial(bpName, mode_readRandomAccess)
+
+        Nsteps = steps(file.engine)
+
+        # read test.bp data using adios_load
         all_data = adios_load(file)
 
-        @test all_data["step"] == 0:(N_steps - 1)
-        @test all_data["group1/scalar"] == fill(1, N_steps)
-        @test all_data["group1/vector"] == fill(1, (nn, N_steps))
-        @test all_data["group1/matrix"] == fill(1, (nn, nn, N_steps))
-        @test all_data["group1/Nd_array"] == fill(1, (nn, nn, nn, N_steps))
+        @test all_data["step"] == 0:(Nsteps - 1)
+        @test all_data["scalar"] == fill(scalar, Nsteps)
+        @test all_data["vector"] == repeat(vector, 1, Nsteps)
+        @test all_data["matrix"] == repeat(matrix, 1, 1, Nsteps)
+        @test all_data["array3D"] == repeat(array3D, 1, 1, 1, Nsteps)
 
-        @test all_data["group2/scalar"] == fill(2, N_steps)
-        @test all_data["group2/vector"] == fill(2, (nn, N_steps))
-        @test all_data["group2/matrix"] == fill(2, (nn, nn, N_steps))
-        @test all_data["group2/Nd_array"] == fill(2, (nn, nn, nn, N_steps))
-
-        @test all_data["scalar_A"] == fill(1, N_steps)
-        @test all_data["scalar_B"] == fill(1, N_steps)
-        @test all_data["abc_scalar_123"] == fill(1, N_steps)
-        @test all_data["scalar_1234"] == fill(1, N_steps)
-        @test all_data["deep/in/nested/groups/scalar"] == fill(1, N_steps)
+        @test all_data["scalar_A"] == fill(scalar, Nsteps)
+        @test all_data["scalar_B"] == fill(scalar, Nsteps)
+        @test all_data["abc_scalar23"] == fill(scalar, Nsteps)
+        @test all_data["scalar234"] == fill(scalar, Nsteps)
+        @test all_data["deep/in/nested/groups/scalar"] == fill(scalar, Nsteps)
         @test all_data["another/deep/in/nested/groups/scalar"] ==
-              fill(1, N_steps)
+              fill(scalar, Nsteps)
+
+        close(file)
+    end
+
+    @testset "Load all data at specific steps" begin
+        file = adios_open_serial(bpName, mode_readRandomAccess)
+
+        # single step
+        target_step = 2
+
+        all_data = adios_load(file,target_step)
+        @test all_data["step"] == target_step
+        @test all_data["scalar"] == scalar
+        @test all_data["vector"] == vector
+        @test all_data["matrix"] == matrix
+        @test all_data["array3D"] == array3D
+
+        # Multiple steps: read data from steps 2 to 5
+        target_steps = 2:5
+        all_data = adios_load(file,target_steps)
+
+        @test all_data["step"] == target_steps
+        @test all_data["scalar"] == fill(scalar, length(target_steps))
+        @test all_data["vector"] == repeat(vector, 1, length(target_steps))
+        @test all_data["matrix"] == repeat(matrix, 1, 1, length(target_steps))
+        @test all_data["array3D"] == repeat(array3D, 1, 1, 1, length(target_steps))
+
+        @test all_data["scalar_A"] == fill(scalar, length(target_steps))
+        @test all_data["deep/in/nested/groups/scalar"] == fill(scalar, length(target_steps))
+
+        close(file)
     end
 
     @testset "adios_load basic dispatches" begin
+        file = adios_open_serial(bpName, mode_readRandomAccess)
+
+        Nsteps = steps(file.engine)
         # single variable, all steps
-        @test adios_load(file, "step") == 0:(N_steps - 1)
-        @test adios_load(file, "group2/vector") == fill(2, (nn, N_steps))
+        @test adios_load(file, "step") == 0:(Nsteps - 1)
+        @test adios_load(file, "vector") == repeat(vector, 1, Nsteps)
 
         # single variable, specific step (@ step=3)
         @test adios_load(file, "step", 3) == 3
-        @test adios_load(file, "group1/scalar", 3) == 1
-        @test adios_load(file, "group2/matrix", 3) == fill(2, (nn, nn))
-        @test adios_load(file, "group2/Nd_array", 3) == fill(2, (nn, nn, nn))
+        @test adios_load(file, "scalar", 3) == scalar
+        @test adios_load(file, "array3D", 3) == array3D
 
         # single varialbe, mulitiple steps
         @test adios_load(file, "step", [1, 3, 5]) == [1, 3, 5]
         @test adios_load(file, "step", [5, 3, 1]) == [5, 3, 1]
         @test adios_load(file, "step", 1:3) == 1:3
-        @test adios_load(file, "group2/matrix", [1, 3, 5]) ==
-              fill(2, (nn, nn, 3))
+        @test adios_load(file, "matrix", [1, 3, 5]) == repeat(matrix, 1, 1, 3)
 
         # mulitiple variables, all steps
-        @test adios_load(file, ["step", "group1/vector"]) ==
-              Dict("step" => 0:(N_steps - 1),
-                   "group1/vector" => fill(1, (nn, N_steps)))
+        @test adios_load(file, ["step", "vector"]) ==
+              Dict("step" => 0:(Nsteps - 1),
+                   "vector" => repeat(vector, 1, Nsteps))
 
         # multiple variables, specific step (@ step=3)
-        @test adios_load(file, ["step", "group1/vector"], 3) ==
-              Dict("step" => 3, "group1/vector" => fill(1, (nn)))
+        @test adios_load(file, ["step", "vector"], 3) ==
+              Dict("step" => 3, "vector" => vector)
 
         # multiple variables, multiple steps
-        @test adios_load(file, ["step", "group1/vector"], [1, 3, 5]) ==
-              Dict("step" => [1, 3, 5], "group1/vector" => fill(1, (nn, 3)))
+        @test adios_load(file, ["step", "vector"], [1, 3, 5]) ==
+              Dict("step" => [1, 3, 5], "vector" =>  repeat(vector, 1, 3) )
+
+        close(file)
     end
 
     @testset "adios_load regex dispatches" begin
-        @test adios_load(file, r"step") == 0:(N_steps - 1)
-        @test adios_load(file, r"^gro.*scalar") ==
-              Dict("group1/scalar" => fill(1, N_steps),
-                   "group2/scalar" => fill(2, N_steps))
+        file = adios_open_serial(bpName, mode_readRandomAccess)
+        Nsteps = steps(file.engine)
+
+        @test adios_load(file, r"step") == 0:(Nsteps - 1)
 
         @test adios_load(file, r"vector|matrix", [1, 3, 5]) ==
-              Dict("group1/vector" => fill(1, (nn, 3)),
-                   "group2/vector" => fill(2, (nn, 3)),
-                   "group1/matrix" => fill(1, (nn, nn, 3)),
-                   "group2/matrix" => fill(2, (nn, nn, 3)))
+            Dict("vector" => repeat(vector, 1, 3),
+                "matrix" => repeat(matrix, 1, 1, 3))
 
         @test adios_load(file, r"scalar.*[^\/]+") ==
-              Dict("scalar_A" => fill(1, N_steps),
-                   "scalar_B" => fill(1, N_steps),
-                   "abc_scalar_123" => fill(1, N_steps),
-                   "scalar_1234" => fill(1, N_steps))
+              Dict("scalar_A" => fill(scalar, Nsteps),
+                   "scalar_B" => fill(scalar, Nsteps),
+                   "abc_scalar23" => fill(scalar, Nsteps),
+                   "scalar234" => fill(scalar, Nsteps))
 
         @test adios_load(file, r"deep.*scalar") ==
-              Dict("deep/in/nested/groups/scalar" => fill(1, N_steps),
-                   "another/deep/in/nested/groups/scalar" => fill(1, N_steps))
+              Dict("deep/in/nested/groups/scalar" => fill(scalar, Nsteps),
+                   "another/deep/in/nested/groups/scalar" => fill(scalar, Nsteps))
 
-        @test adios_load(file, r"group1.*") ==
-              Dict("group1/scalar" => fill(1, N_steps),
-                   "group1/vector" => fill(1, (nn, N_steps)),
-                   "group1/matrix" => fill(1, (nn, nn, N_steps)),
-                   "group1/Nd_array" => fill(1, (nn, nn, nn, N_steps)))
+        close(file)
+    end
 
-        @test adios_load(file, r"group1.*") ==
-              Dict("group1/scalar" => fill(1, N_steps),
-                   "group1/vector" => fill(1, (nn, N_steps)),
-                   "group1/matrix" => fill(1, (nn, nn, N_steps)),
-                   "group1/Nd_array" => fill(1, (nn, nn, nn, N_steps)))
+    @testset "adios_load with bpName directly" begin
+        file = adios_open_serial(bpName, mode_readRandomAccess)
 
-        @test adios_load(file, r"deep.*scalar") ==
-              Dict("deep/in/nested/groups/scalar" => fill(1, N_steps),
-                   "another/deep/in/nested/groups/scalar" => fill(1, N_steps))
+        @test adios_load(bpName) == adios_load(file)
+        @test adios_load(bpName, "step") == adios_load(file, "step")
+        @test adios_load(bpName, r"scalar") == adios_load(file, r"scalar")
+
+        @test_throws ErrorException adios_load("non-existing-file.bp")
+        @test_throws ErrorException adios_load("non-existing-file.bp", "step")
+
+        close(file)
     end
 
     # clean up
-    close(file)
-    rm("$tmp_dir/test.bp"; force=true, recursive=true)
+    rm(bpName; force=true, recursive=true)
     rm(tmp_dir; force=true)
 end
