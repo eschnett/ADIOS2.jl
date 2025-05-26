@@ -59,6 +59,7 @@ data_dict = adios_load(file, r"temper|pres", 50:100) # will read (temperature, t
 close(file)
 ```
 """
+
 function adios_load(file::AdiosFile)
     @assert openmode(file.engine) === mode_readRandomAccess "File must be opened with `mode_readRandomAccess`"
     all_varNames = adios_all_variable_names(file)
@@ -168,6 +169,35 @@ function adios_load(file::AdiosFile, name_pattern::Regex, ::Type{Val{:no_step}})
                       adios_all_variable_names(file))
     return adios_load(file, varNames, Val{:no_step})
 end
+
+# Convenience dispatches for loading from a file path or directory
+"""
+    Load ADIOS data from a file or directory path.
+    If the path is a directory, it will look for a file with the `.bp` extension.
+    If the path is a file, it will attempt to open it directly.
+"""
+function adios_load(bpFileName::AbstractString)
+    if (isdir(bpFileName) || isfile(bpFileName))
+        file = adios_open_serial(bpFileName, mode_readRandomAccess)
+        result = adios_load(file)
+        close(file)
+        return result
+    else
+        error("$bpFileName is not valid or does not exist.\n")
+    end
+end
+
+function adios_load(bpFileName::AbstractString, args...)
+    if (isdir(bpFileName) || isfile(bpFileName))
+        file = adios_open_serial(bpFileName, mode_readRandomAccess)
+        result = adios_load(file, args...)
+        close(file)
+        return result
+    else
+        error("$bpFileName is not valid or does not exist.\n")
+    end
+end
+
 
 """
 Check if steps are valid for the given ADIOS file.
