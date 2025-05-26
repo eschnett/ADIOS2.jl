@@ -59,7 +59,6 @@ data_dict = adios_load(file, r"temper|pres", 50:100) # will read (temperature, t
 close(file)
 ```
 """
-
 function adios_load(file::AdiosFile)
     @assert openmode(file.engine) === mode_readRandomAccess "File must be opened with `mode_readRandomAccess`"
     all_varNames = adios_all_variable_names(file)
@@ -172,36 +171,75 @@ end
 
 # Convenience dispatches for loading from a file path or directory
 """
-    Load ADIOS data from a file or directory path.
-    If the path is a directory, it will look for a file with the `.bp` extension.
-    If the path is a file, it will attempt to open it directly.
+    adios_load(bpPath::AbstractString)
+    adios_load(bpPath::AbstractString, args...)
+
+Convenient highest-level API to read variable data directly from ADIOS's BP file path.
+
+This is a convenience wrapper that automatically opens the file in `mode_readRandomAccess`,
+reads the data, and closes the file. All the functionality of `adios_load(file::AdiosFile, ...)`
+is available through the same argument patterns.
+
+# Arguments
+- `bpPath` (`AbstractString`): Path to ADIOS's BP file/directory ending with `.bp` extension
+- `args...`: Same arguments as `adios_load(file::AdiosFile, ...)` - variable names, steps, etc.
+
+# Returns
+Same return types as `adios_load(file::AdiosFile, ...)`:
+- Single variable, single step: N-D array
+- Single variable, multiple steps: (N+1)-D array with steps as last dimension
+- Multiple variables: Dictionary with variable names as keys
+
+# Examples
+```julia
+# Read all variables and all steps
+data_dict = adios_load("simulation.bp")
+
+# Read specific variable, all steps
+temperature = adios_load("simulation.bp", "temperature")
+
+# Read specific variable at specific step
+temp_step5 = adios_load("simulation.bp", "temperature", 5)
+
+# Read multiple variables at multiple steps
+data = adios_load("simulation.bp", ["temperature", "pressure"], [1,3,5])
+
+# Read variables matching pattern
+temps = adios_load("simulation.bp", r".*temperature.*", 10:20)
+```
+
+# Notes
+- File is automatically opened with `mode_readRandomAccess` and closed after reading
+- Throws `ErrorException` if the file path does not exist or is invalid
+- More efficient to use `adios_load(file::AdiosFile, ...)` directly if reading multiple times
+  from the same file to avoid repeated open/close operations
+
+See also: [`adios_load(::AdiosFile)`](@ref), [`adios_open_serial`](@ref)
 """
-function adios_load(bpFileName::AbstractString)
-    if (isdir(bpFileName) || isfile(bpFileName))
-        file = adios_open_serial(bpFileName, mode_readRandomAccess)
+function adios_load(bpPath::AbstractString)
+    if (isdir(bpPath) || isfile(bpPath)) && endswith(bpPath, ".bp")
+        file = adios_open_serial(bpPath, mode_readRandomAccess)
         result = adios_load(file)
         close(file)
         return result
     else
-        error("$bpFileName is not valid or does not exist.\n")
+        error("$bpPath is not valid or not ending with `.bp` extension \n")
     end
 end
 
-function adios_load(bpFileName::AbstractString, args...)
-    if (isdir(bpFileName) || isfile(bpFileName))
-        file = adios_open_serial(bpFileName, mode_readRandomAccess)
+function adios_load(bpPath::AbstractString, args...)
+    if (isdir(bpPath) || isfile(bpPath))  && endswith(bpPath, ".bp")
+        file = adios_open_serial(bpPath, mode_readRandomAccess)
         result = adios_load(file, args...)
         close(file)
         return result
     else
-        error("$bpFileName is not valid or does not exist.\n")
+        error("$bpPath is not valid or not ending with `.bp` extension \n")
     end
 end
 
 
-"""
-Check if steps are valid for the given ADIOS file.
-"""
+# Check if steps are valid for the given ADIOS file.
 function _check_validity_of_steps(file::AdiosFile,
                                   step_list::AbstractArray{<:Integer})
     total_steps = steps(file.engine)
@@ -215,10 +253,8 @@ function _check_validity_of_steps(file::AdiosFile,
     return true
 end
 
-"""
-Filter variable names to only those that exist in the ADIOS file.
-Prints a warning for variables that are not found.
-"""
+# Filter variable names to only those that exist in the ADIOS file.
+# Prints a warning for variables that are not found.
 function filter_available_variables(file::AdiosFile,
                                     varNames::AbstractArray{<:AbstractString})
     available_vars = String[]
@@ -236,10 +272,8 @@ function filter_available_variables(file::AdiosFile,
     return available_vars
 end
 
-"""
-Schedule variable reading tasks in mode_readRandomAccess for specified steps.
-Returns array of IORef objects ready for batch processing.
-"""
+# Schedule variable reading tasks in mode_readRandomAccess for specified steps.
+# Returns array of IORef objects ready for batch processing.
 function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
                                       steps::AbstractArray{<:Integer})
     var = inquire_variable(file.io, varName)
@@ -286,11 +320,9 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
     return ioref
 end
 
-"""
-Normalize data shape from IORef objects for consistent output format.
-Returns data in the appropriate dimensionality based on content.
-Handles both scalar and array data properly with steps as the last dimension.
-"""
+# Normalize data shape from IORef objects for consistent output format.
+# Returns data in the appropriate dimensionality based on content.
+# Handles both scalar and array data properly with steps as the last dimension.
 function _normalize_data_shape(ioref::IORef)
     @assert isready(ioref) "IORefs must be ready before assembling data"
 
