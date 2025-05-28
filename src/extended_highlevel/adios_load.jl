@@ -8,7 +8,7 @@ Read variable data from ADIOS file with optional variable name(s) and step selec
 - First:
   - `file` (::`AdiosFile`): ADIOS file (opened with `mode_readRandomAccess`)
 - Second (Optional):
-  - `varName` (::`AbstarctString`): Single variable name or nothing (reads all)
+  - `varName` (::`AbstractString`): Single variable name or nothing (reads all)
   - `varNames` (::`AbstractArray{<:AbstractString}``): Array of variable names
   - `name_pattern` (::`Regex`): To find variables whose name contains the pattern (e.g., r"temp.*")
 - Third (Optional):
