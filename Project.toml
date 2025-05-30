@@ -9,6 +9,6 @@ Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 
 [compat]
-ADIOS2_jll = "2.7.1"
-MPI = "0.17, 0.18, 0.19, 0.20"
-julia = "1.6"
+ADIOS2_jll = "2.10"
+MPI = "0.20"
+julia = "1.7"
