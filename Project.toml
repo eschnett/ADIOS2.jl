@@ -1,15 +1,13 @@
+authors = ["Erik Schnetter <schnetter@gmail.com>"]
 name = "ADIOS2"
 uuid = "e0ce9d3b-0dbd-416f-8264-ccca772f60ec"
-authors = ["Erik Schnetter <schnetter@gmail.com>"]
 version = "1.4.0"
+
+[compat]
+ADIOS2_jll = "2.10"
+julia = "1.7"
 
 [deps]
 ADIOS2_jll = "44b1415a-b224-5c99-9168-ff4febb5f37f"
 Libdl = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
 MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
-
-[compat]
-ADIOS2_jll = "2.10"
-#TOD MPI = "0.20"
-#TOD MPI = "0.20.22"
-julia = "1.7"

@@ -50,11 +50,18 @@ jobs:
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
         run: |
+          julia --project=@. --eval 'using MPIPreferences; MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
-          echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
+          echo 'env ~/.julia/bin/mpiexecjl -verbose -n 1 --project=@. "$@"' >~/.julia/bin/mpiexecjl1 &&
+          echo 'env ~/.julia/bin/mpiexecjl -verbose -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
+          chmod a+x ~/.julia/bin/mpiexecjl1 &&
           chmod a+x ~/.julia/bin/mpiexecjl2
+      - uses: julia-actions/julia-runtest@v1
+        if: ${{matrix.skipmpi != 'true'}}
+        with:
+          prefix: $HOME/.julia/bin/mpiexecjl1
       - uses: julia-actions/julia-runtest@v1
         if: ${{matrix.skipmpi != 'true'}}
         with:
