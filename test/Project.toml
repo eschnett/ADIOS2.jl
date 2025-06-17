@@ -6,3 +6,4 @@ MPICH_jll = "7cb0a576-ebde-5e09-9194-50597f1243b4"
 
 [compat]
 MPICH_jll = "~4.1"
+MPI = "0.20.22"
