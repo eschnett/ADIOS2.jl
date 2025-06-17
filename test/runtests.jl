@@ -1,29 +1,29 @@
-#TODO using ADIOS2
+using ADIOS2
 using Base.Filesystem
 using MPI
 using Printf
 using Test
 
-#TODO ################################################################################
-#TODO # Find ADIOS2 version
-#TODO 
-#TODO # There is no official way to find the ADIOS2 library version. Instead
-#TODO # we check the default engine type after opening a file.
-#TODO const ADIOS2_VERSION = let
-#TODO     adios = adios_init_serial()
-#TODO     io = declare_io(adios, "IO")
-#TODO     filename = tempname()
-#TODO     engine = open(io, filename, mode_write)
-#TODO     etype = type(engine)
-#TODO     close(engine)
-#TODO     if etype == "BP4Writer"
-#TODO         v"2.8.0"
-#TODO     elseif etype == "BP5Writer"
-#TODO         v"2.9.0"
-#TODO     else
-#TODO         @assert false
-#TODO     end
-#TODO end
+################################################################################
+# Find ADIOS2 version
+
+# There is no official way to find the ADIOS2 library version. Instead
+# we check the default engine type after opening a file.
+const ADIOS2_VERSION = let
+    adios = adios_init_serial()
+    io = declare_io(adios, "IO")
+    filename = tempname()
+    engine = open(io, filename, mode_write)
+    etype = type(engine)
+    close(engine)
+    if etype == "BP4Writer"
+        v"2.8.0"
+    elseif etype == "BP5Writer"
+        v"2.9.0"
+    else
+        @assert false
+    end
+end
 
 ################################################################################
 
@@ -59,11 +59,11 @@ end
 
 ################################################################################
 
-#TODO include("internal.jl")
-#TODO include("basic.jl")
-#TODO include("highlevel.jl")
-#TODO include("write_read_selection.jl")
-#TODO include("adios_load.jl")
+include("internal.jl")
+include("basic.jl")
+include("highlevel.jl")
+include("write_read_selection.jl")
+include("adios_load.jl")
 
 ################################################################################
 
