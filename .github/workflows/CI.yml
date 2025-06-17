@@ -12,11 +12,11 @@ jobs:
           - arch: "aarch64"
             os: "macOS-latest"
             version: "1.11"
-            skipmpi: 'true'     # Why does this not work in CI? This works locally.
+            #TODO skipmpi: 'true'     # Why does this not work in CI? This works locally.
           - arch: "x64"
             os: "macOS-latest"
             version: "1.11"
-            skipmpi: 'true'     # Why does this not work in CI? This works locally.
+            #TODO skipmpi: 'true'     # Why does this not work in CI? This works locally.
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.11"
@@ -34,10 +34,13 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.8"
-            skipmpi: 'true'     # Why does this not work?
+            #TODO skipmpi: 'true'     # Why does this not work?
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
+          - arch: "x64"
+            os: "ubuntu-latest"
+            version: "1.6"
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
