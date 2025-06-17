@@ -10,5 +10,6 @@ MPI = "da04e1cc-30fd-572f-bb4f-1f8673147195"
 
 [compat]
 ADIOS2_jll = "2.10"
-MPI = "0.20"
+#TOD MPI = "0.20"
+#TOD MPI = "0.20.22"
 julia = "1.7"
