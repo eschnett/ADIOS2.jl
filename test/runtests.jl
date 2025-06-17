@@ -42,6 +42,7 @@ let
     #=const=# use_mpi = comm_size > 1
     println("$(use_mpi ? "Enabling" : "Disabling") MPI tests")
 end
+println("aaa.9")
 
 ################################################################################
 
@@ -65,10 +66,15 @@ end
 ################################################################################
 
 # Finalize MPI
+println("zzz.0")
 let
+    println("zzz.1")
     #=const=# mpi_finalized = MPI.Finalized()
+    println("zzz.2")
     if mpi_initialized && !mpi_finalized
         println("Finalizing MPI")
         MPI.Finalize()
     end
+    println("zzz.3")
 end
+println("zzz.9")
