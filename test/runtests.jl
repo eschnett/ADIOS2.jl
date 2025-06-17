@@ -28,6 +28,10 @@ end
 
 ################################################################################
 
+println("MPI version: $(MPI.Get_version())")
+println("MPI library version:")
+println(MPI.Get_library_version())
+
 # Initialize MPI
 @assert !MPI.Finalized()
 const mpi_initialized = MPI.Initialized()
