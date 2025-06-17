@@ -29,21 +29,19 @@ end
 
 # Initialize MPI
 println("aaa.0")
-let
-    #=const=# mpi_initialized = MPI.Initialized()
-    if !mpi_initialized
-        println("Initializing MPI")
-        MPI.Init()
-    end
-    global we_initialized_mpi = !mpi_initialized
-    #=const=# comm = MPI.COMM_WORLD
-    #=const=# comm_rank = MPI.Comm_rank(comm)
-    #=const=# comm_size = MPI.Comm_size(comm)
-    println("This is MPI process $comm_rank/$comm_size")
-    #=const=# comm_root = 0
-    #=const=# use_mpi = comm_size > 1
-    println("$(use_mpi ? "Enabling" : "Disabling") MPI tests")
+#=const=# mpi_initialized = MPI.Initialized()
+if !mpi_initialized
+    println("Initializing MPI")
+    MPI.Init()
 end
+global we_initialized_mpi = !mpi_initialized
+#=const=# comm = MPI.COMM_WORLD
+#=const=# comm_rank = MPI.Comm_rank(comm)
+#=const=# comm_size = MPI.Comm_size(comm)
+println("This is MPI process $comm_rank/$comm_size")
+#=const=# comm_root = 0
+#=const=# use_mpi = comm_size > 1
+println("$(use_mpi ? "Enabling" : "Disabling") MPI tests")
 println("aaa.9")
 
 ################################################################################
@@ -69,14 +67,12 @@ include("adios_load.jl")
 
 # Finalize MPI
 println("zzz.0")
-let
-    println("zzz.1")
-    #=const=# mpi_finalized = MPI.Finalized()
-    println("zzz.2")
-    if we_initialized_mpi && !mpi_finalized
-        println("Finalizing MPI")
-        MPI.Finalize()
-    end
-    println("zzz.3")
+println("zzz.1")
+#=const=# mpi_finalized = MPI.Finalized()
+println("zzz.2")
+if we_initialized_mpi && !mpi_finalized
+    println("Finalizing MPI")
+    MPI.Finalize()
 end
+println("zzz.3")
 println("zzz.9")
