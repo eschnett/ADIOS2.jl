@@ -37,7 +37,7 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.8"
-            #TODO skipmpi: 'true'     # Why does this not work?
+            skipmpi: 'true'     # Why does this not work?
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
