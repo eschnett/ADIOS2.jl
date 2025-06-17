@@ -167,7 +167,11 @@
         close(file)
     end
 
-    # clean up
-    rm(bpName; force=true, recursive=true)
-    rm(tmp_dir; force=true)
+    sleep(1)
+    println("before gc")
+    sleep(1)
+    GC.gc()
+    sleep(1)
+    println("after gc")
+    sleep(1)
 end
