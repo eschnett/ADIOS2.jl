@@ -9,6 +9,7 @@ using Test
 
 # There is no official way to find the ADIOS2 library version. Instead
 # we check the default engine type after opening a file.
+# TODO: We don't support anyting below 2.10 anyway; we don't need this any more
 const ADIOS2_VERSION = let
     adios = adios_init_serial()
     io = declare_io(adios, "IO")
@@ -27,12 +28,19 @@ end
 
 ################################################################################
 
+println("MPI version: $(MPI.Get_version())")
+println("MPI library version:")
+println(MPI.Get_library_version())
+
 # Initialize MPI
+@assert !MPI.Finalized()
 const mpi_initialized = MPI.Initialized()
 if !mpi_initialized
     println("Initializing MPI")
     MPI.Init()
 end
+@assert MPI.Initialized()
+const we_initialized_mpi = !mpi_initialized
 const comm = MPI.COMM_WORLD
 const comm_rank = MPI.Comm_rank(comm)
 const comm_size = MPI.Comm_size(comm)
@@ -64,7 +72,9 @@ include("adios_load.jl")
 
 # Finalize MPI
 const mpi_finalized = MPI.Finalized()
-if mpi_initialized && !mpi_finalized
+if we_initialized_mpi && !mpi_finalized
     println("Finalizing MPI")
     MPI.Finalize()
 end
+@assert MPI.Initialized()
+@assert MPI.Finalized()

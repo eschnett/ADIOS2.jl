@@ -166,8 +166,4 @@
 
         close(file)
     end
-
-    # clean up
-    rm(bpName; force=true, recursive=true)
-    rm(tmp_dir; force=true)
 end

@@ -39,9 +39,6 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
-          # - arch: "x64"
-          #   os: "ubuntu-latest"
-          #   version: "1.6"
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -49,17 +46,21 @@ jobs:
           version: ${{matrix.version}}
           arch: ${{matrix.arch}}
       - uses: julia-actions/cache@v2
-
       - name: Downgrade to lower bound versions
         uses: julia-actions/julia-downgrade-compat@v1
         with:
           skip: Pkg, TOML
-
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
+        # MPICH has problems starting up on some platforms. We're using OpenMPI instead.
         run: |
+          julia --project=@. --eval '
+            using Pkg
+            Pkg.add("MPIPreferences")
+            using MPIPreferences
+            MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
