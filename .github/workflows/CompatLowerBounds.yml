@@ -64,7 +64,7 @@ jobs:
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
-          echo ~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
+          echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
           chmod a+x ~/.julia/bin/mpiexecjl2
       - uses: julia-actions/julia-runtest@v1
         if: ${{matrix.skipmpi != 'true'}}
