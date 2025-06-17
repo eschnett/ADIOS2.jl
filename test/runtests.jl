@@ -27,21 +27,22 @@ using Test
 
 ################################################################################
 
-# Initialize MPI
-let
-    global #=const=# mpi_initialized = MPI.Initialized()
-    if !mpi_initialized
-        println("Initializing MPI")
-        MPI.Init()
-    end
-    #=const=# comm = MPI.COMM_WORLD
-    #=const=# comm_rank = MPI.Comm_rank(comm)
-    #=const=# comm_size = MPI.Comm_size(comm)
-    println("This is MPI process $comm_rank/$comm_size")
-    #=const=# comm_root = 0
-    #=const=# use_mpi = comm_size > 1
-    println("$(use_mpi ? "Enabling" : "Disabling") MPI tests")
-end
+#TODO # Initialize MPI
+println("aaa.0")
+#TODO let
+#TODO     global #=const=# mpi_initialized = MPI.Initialized()
+#TODO     if !mpi_initialized
+#TODO         println("Initializing MPI")
+#TODO         MPI.Init()
+#TODO     end
+#TODO     #=const=# comm = MPI.COMM_WORLD
+#TODO     #=const=# comm_rank = MPI.Comm_rank(comm)
+#TODO     #=const=# comm_size = MPI.Comm_size(comm)
+#TODO     println("This is MPI process $comm_rank/$comm_size")
+#TODO     #=const=# comm_root = 0
+#TODO     #=const=# use_mpi = comm_size > 1
+#TODO     println("$(use_mpi ? "Enabling" : "Disabling") MPI tests")
+#TODO end
 println("aaa.9")
 
 ################################################################################
@@ -67,14 +68,14 @@ end
 
 # Finalize MPI
 println("zzz.0")
-let
-    println("zzz.1")
-    #=const=# mpi_finalized = MPI.Finalized()
-    println("zzz.2")
-    if mpi_initialized && !mpi_finalized
-        println("Finalizing MPI")
-        MPI.Finalize()
-    end
-    println("zzz.3")
-end
+#TODO let
+#TODO     println("zzz.1")
+#TODO     #=const=# mpi_finalized = MPI.Finalized()
+#TODO     println("zzz.2")
+#TODO     if mpi_initialized && !mpi_finalized
+#TODO         println("Finalizing MPI")
+#TODO         MPI.Finalize()
+#TODO     end
+#TODO     println("zzz.3")
+#TODO end
 println("zzz.9")
