@@ -5,6 +5,7 @@ version = "1.4.0"
 
 [compat]
 ADIOS2_jll = "2.10"
+MPI = "0.20"
 julia = "1.7"
 
 [deps]
