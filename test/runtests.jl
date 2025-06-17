@@ -29,7 +29,7 @@ using Test
 
 # Initialize MPI
 let
-    #=const=# mpi_initialized = MPI.Initialized()
+    global #=const=# mpi_initialized = MPI.Initialized()
     if !mpi_initialized
         println("Initializing MPI")
         MPI.Init()
