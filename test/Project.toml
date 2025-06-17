@@ -5,4 +5,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 MPICH_jll = "7cb0a576-ebde-5e09-9194-50597f1243b4"
 
 [compat]
-MPICH_jll = "~4.2"
+MPICH_jll = "~4.1"
