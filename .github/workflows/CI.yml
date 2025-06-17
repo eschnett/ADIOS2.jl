@@ -50,6 +50,7 @@ jobs:
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
         run: |
+          julia --project=@. --eval 'using Pkg; Pkg.add("MPIPreferences")' &&
           julia --project=@. --eval 'using MPIPreferences; MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
