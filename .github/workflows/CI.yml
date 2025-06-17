@@ -21,10 +21,10 @@ jobs:
             os: "ubuntu-latest"
             version: "1.11"
           # Windows gets stuck after `File write tests`. Don't know why.
-          # - arch: "x64"
-          #   os: "windows-latest"
-          #   version: "1.11"
-          #   skipmpi: 'true'     # MPI doesn't work on Windows
+          - arch: "x64"
+            os: "windows-latest"
+            version: "1.11"
+            skipmpi: 'true'     # MPI doesn't work on Windows
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.10"
@@ -34,7 +34,7 @@ jobs:
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.8"
-            skipmpi: 'true'     # Why does this not work?
+            #TODO skipmpi: 'true'     # Why does this not work?
           - arch: "x64"
             os: "ubuntu-latest"
             version: "1.7"
@@ -49,20 +49,18 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
+        # MPICH has problems starting up on some platforms. We're using OpenMPI instead.
         run: |
-          julia --project=@. --eval 'using Pkg; Pkg.add("MPIPreferences")' &&
-          julia --project=@. --eval 'using MPIPreferences; MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
+          julia --project=@. --eval '
+            using Pkg
+            Pkg.add("MPIPreferences")
+            using MPIPreferences
+            MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
-          echo 'env ~/.julia/bin/mpiexecjl -verbose -n 1 --project=@. "$@"' >~/.julia/bin/mpiexecjl1 &&
           echo 'env ~/.julia/bin/mpiexecjl -verbose -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
-          chmod a+x ~/.julia/bin/mpiexecjl1 &&
           chmod a+x ~/.julia/bin/mpiexecjl2
-      - uses: julia-actions/julia-runtest@v1
-        if: ${{matrix.skipmpi != 'true'}}
-        with:
-          prefix: $HOME/.julia/bin/mpiexecjl1
       - uses: julia-actions/julia-runtest@v1
         if: ${{matrix.skipmpi != 'true'}}
         with:
