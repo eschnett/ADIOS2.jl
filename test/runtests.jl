@@ -29,11 +29,13 @@ end
 ################################################################################
 
 # Initialize MPI
+@assert !MPI.Finalized()
 const mpi_initialized = MPI.Initialized()
 if !mpi_initialized
     println("Initializing MPI")
     MPI.Init()
 end
+@assert MPI.Initialized()
 const we_initialized_mpi = !mpi_initialized
 const comm = MPI.COMM_WORLD
 const comm_rank = MPI.Comm_rank(comm)
@@ -70,3 +72,5 @@ if we_initialized_mpi && !mpi_finalized
     println("Finalizing MPI")
     MPI.Finalize()
 end
+@assert MPI.Initialized()
+@assert MPI.Finalized()
