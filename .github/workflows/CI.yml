@@ -7,6 +7,7 @@ jobs:
     name: Julia ${{matrix.version}} - ${{matrix.os}} - ${{matrix.arch}} - ${{github.event_name}}
     runs-on: ${{matrix.os}}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: "aarch64"
@@ -33,6 +34,7 @@ jobs:
           - arch: "x64"
             os: "ubuntu-24.04"
             version: "1.10"
+            skipmpi: 'true'     # "launcher not compatible with PMI1 client"
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
