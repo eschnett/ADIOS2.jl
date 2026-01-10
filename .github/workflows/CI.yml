@@ -10,34 +10,30 @@ jobs:
       matrix:
         include:
           - arch: "aarch64"
-            os: "macOS-latest"
+            os: "macOS-15"
+            version: "1.12"
+          - arch: "aarch64"
+            os: "ubuntu-24.04-arm"
+            version: "1.12"
+          - arch: "x64"
+            os: "macOS-15-intel"
+            version: "1.12"
+          - arch: "x64"
+            os: "ubuntu-24.04"
+            version: "1.12"
+         #TODO: Windows gets stuck after `File write tests`. Don't know why.
+          - arch: "x64"
+            os: "windows-2025"
+            version: "1.12"
+            skipmpi: 'true'     # MPI doesn't work on Windows
+          - arch: "x64"
+            os: "ubuntu-24.04"
             version: "1.11"
           - arch: "x64"
-            os: "macOS-latest"
-            version: "1.11"
-          - arch: "x64"
-            os: "ubuntu-latest"
-            version: "1.11"
-          # Windows gets stuck after `File write tests`. Don't know why.
-          # - arch: "x64"
-          #   os: "windows-latest"
-          #   version: "1.11"
-          #   skipmpi: 'true'     # MPI doesn't work on Windows
-          - arch: "x64"
-            os: "ubuntu-latest"
+            os: "ubuntu-24.04"
             version: "1.10"
-          - arch: "x64"
-            os: "ubuntu-latest"
-            version: "1.9"
-          - arch: "x64"
-            os: "ubuntu-latest"
-            version: "1.8"
-            skipmpi: 'true'     # Why does this not work?
-          - arch: "x64"
-            os: "ubuntu-latest"
-            version: "1.7"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: ${{matrix.version}}
@@ -47,13 +43,19 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
-        # MPICH has problems starting up on some platforms. We're using OpenMPI instead.
+        # # MPICH has problems starting up on some platforms. We're using OpenMPI instead.
+        # run: |
+        #   julia --project=@. --eval '
+        #     using Pkg
+        #     Pkg.add("MPIPreferences")
+        #     using MPIPreferences
+        #     MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
+        #   julia --project=@. --eval '
+        #     using MPI
+        #     MPI.install_mpiexecjl()' &&
+        #   echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
+        #   chmod a+x ~/.julia/bin/mpiexecjl2
         run: |
-          julia --project=@. --eval '
-            using Pkg
-            Pkg.add("MPIPreferences")
-            using MPIPreferences
-            MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
@@ -64,6 +66,8 @@ jobs:
         with:
           prefix: $HOME/.julia/bin/mpiexecjl2
       - uses: julia-actions/julia-processcoverage@v1
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
       - uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
