@@ -148,7 +148,7 @@ end
 
 function adios_load(file::AdiosFile, varName::AbstractString,
                     ::Type{Val{:no_step}})
-    return fectch(adios_get(file, varName))
+    return fetch(adios_get(file, varName))
 end
 
 function adios_load(file::AdiosFile, varNames::AbstractArray{<:AbstractString},
