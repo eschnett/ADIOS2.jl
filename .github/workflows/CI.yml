@@ -13,28 +13,28 @@ jobs:
           - arch: "aarch64"
             os: "macOS-15"
             version: "1.12"
-            # skipmpi: 'true'     # "launcher not compatible with PMI1 client"
+            skipmpi: 'true'     # "PMIU_write error; fd=10 buf=:cmd=init pmi_version=1 pmi_subversion=1"
           - arch: "aarch64"
             os: "ubuntu-24.04-arm"
             version: "1.12"
           - arch: "x64"
             os: "macOS-15-intel"
             version: "1.12"
+            skipmpi: 'true'     # "PMIU_write error; fd=10 buf=:cmd=init pmi_version=1 pmi_subversion=1"
           - arch: "x64"
             os: "ubuntu-24.04"
             version: "1.12"
-         #TODO: Windows gets stuck after `File write tests`. Don't know why.
-          - arch: "x64"
-            os: "windows-2025"
-            version: "1.12"
-            skipmpi: 'true'     # MPI doesn't work on Windows
+          #: Windows gets stuck after `File write tests`. Don't know why.
+          # - arch: "x64"
+          #   os: "windows-2025"
+          #   version: "1.12"
+          #   skipmpi: 'true'     # MPI doesn't work on Windows
           - arch: "x64"
             os: "ubuntu-24.04"
             version: "1.11"
           - arch: "x64"
             os: "ubuntu-24.04"
             version: "1.10"
-            # skipmpi: 'true'     # "launcher not compatible with PMI1 client"
     steps:
       - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
@@ -47,14 +47,6 @@ jobs:
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
         run: |
-          #TODO # MPICH has problems starting up on some platforms. This is
-          #TODO # probably related to the special OS setup used for CI. We're
-          #TODO # using OpenMPI instead.
-          #TODO julia --project=@. --eval '
-          #TODO   using Pkg
-          #TODO   Pkg.add("MPIPreferences")
-          #TODO   using MPIPreferences
-          #TODO   MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
