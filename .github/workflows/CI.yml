@@ -12,6 +12,7 @@ jobs:
           - arch: "aarch64"
             os: "macOS-15"
             version: "1.12"
+            skipmpi: 'true'     # "launcher not compatible with PMI1 client"
           - arch: "aarch64"
             os: "ubuntu-24.04-arm"
             version: "1.12"
@@ -43,10 +44,10 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
-        # MPICH has problems starting up on some platforms. This is
-        # probably related to the special OS setup used for CI. We're
-        # using OpenMPI instead.
         run: |
+          # MPICH has problems starting up on some platforms. This is
+          # probably related to the special OS setup used for CI. We're
+          # using OpenMPI instead.
           julia --project=@. --eval '
             using Pkg
             Pkg.add("MPIPreferences")
