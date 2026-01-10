@@ -103,17 +103,26 @@
         # single variable, all steps
         @test adios_load(file, "step") == 0:(Nsteps - 1)
         @test adios_load(file, "vector") == repeat(vector, 1, Nsteps)
+        @test adios_load(file, "vector"; start=(2,)) == repeat(vector[2:end], 1, Nsteps)
+        @test adios_load(file, "vector"; count=(2,)) == repeat(vector[1:2], 1, Nsteps)
+        @test adios_load(file, "vector"; start=(2,), count=(2,)) == repeat(vector[2:3], 1, Nsteps)
 
         # single variable, specific step (@ step=3)
         @test adios_load(file, "step", 3) == 3
         @test adios_load(file, "scalar", 3) == scalar
         @test adios_load(file, "array3D", 3) == array3D
+        @test adios_load(file, "array3D", 3; start=(1, 2, 3)) == array3D[1:end,2:end,3:end]
+        @test adios_load(file, "array3D", 3; count=(2, 2, 1)) == array3D[1:2,1:2,1:1]
+        @test adios_load(file, "array3D", 3; start=(1, 2, 3), count=(2, 2, 1)) == array3D[1:2,2:3,3:3]
 
         # single varialbe, mulitiple steps
         @test adios_load(file, "step", [1, 3, 5]) == [1, 3, 5]
         @test adios_load(file, "step", [5, 3, 1]) == [5, 3, 1]
         @test adios_load(file, "step", 1:3) == 1:3
         @test adios_load(file, "matrix", [1, 3, 5]) == repeat(matrix, 1, 1, 3)
+        @test adios_load(file, "matrix", [1, 3, 5]; start=(2, 1)) == repeat(matrix[2:end,1:end], 1, 1, 3)
+        @test adios_load(file, "matrix", [1, 3, 5]; count=(2, 1)) == repeat(matrix[1:2,1:1], 1, 1, 3)
+        @test adios_load(file, "matrix", [1, 3, 5]; start=(2, 1), count=(2, 1)) == repeat(matrix[2:3,1:1], 1, 1, 3)
 
         # mulitiple variables, all steps
         @test adios_load(file, ["step", "vector"]) ==
