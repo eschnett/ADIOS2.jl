@@ -43,19 +43,15 @@ jobs:
       - uses: julia-actions/julia-runtest@v1
       - name: Install mpiexecjl
         if: ${{matrix.skipmpi != 'true'}}
-        # # MPICH has problems starting up on some platforms. We're using OpenMPI instead.
-        # run: |
-        #   julia --project=@. --eval '
-        #     using Pkg
-        #     Pkg.add("MPIPreferences")
-        #     using MPIPreferences
-        #     MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
-        #   julia --project=@. --eval '
-        #     using MPI
-        #     MPI.install_mpiexecjl()' &&
-        #   echo '~/.julia/bin/mpiexecjl -n 2 --project=@. "$@"' >~/.julia/bin/mpiexecjl2 &&
-        #   chmod a+x ~/.julia/bin/mpiexecjl2
+        # MPICH has problems starting up on some platforms. This is
+        # probably related to the special OS setup used for CI. We're
+        # using OpenMPI instead.
         run: |
+          julia --project=@. --eval '
+            using Pkg
+            Pkg.add("MPIPreferences")
+            using MPIPreferences
+            MPIPreferences.use_jll_binary("OpenMPI_jll")' &&
           julia --project=@. --eval '
             using MPI
             MPI.install_mpiexecjl()' &&
