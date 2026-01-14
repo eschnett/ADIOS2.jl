@@ -147,7 +147,9 @@ const ENGINE_TYPE = "BP4"
          # <https://github.com/ornladios/ADIOS2/issues/2734>
          # Complex{Float32}, Complex{Float64},
                   Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
-        val = T ≡ String ? "42" : T(42)
+        # Use a ludicrously long string for T≡String to test that we are not relying on
+        # the old hard-coded maximum length.
+        val = T ≡ String ? "42"^2500 : T(42)
         val::T
 
         # Attribute
@@ -171,7 +173,9 @@ const ENGINE_TYPE = "BP4"
 
         # Attribute arrays need to have at least one element (why?)
         for len in 1:2:3
-            vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+            # Include a ludicrously long string for T≡String to test that we are not
+            # relying on the old hard-coded maximum length.
+            vals = (T ≡ String ? String["42"^2500, "", "44"] : T[42, 0, 44])[1:len]
 
             # Attribute array
             nm = "array.p$rankstr.$T.$len"
@@ -211,12 +215,12 @@ const ENGINE_TYPE = "BP4"
         if D == -1
             @test is_value(attr)
             @test size(attr) == 1
-            val = T ≡ String ? "42" : T(42)
+            val = T ≡ String ? "42"^2500 : T(42)
             @test data(attr) == val
         else
             @test !is_value(attr)
             @test size(attr) == len
-            vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+            vals = (T ≡ String ? String["42"^2500, "", "44"] : T[42, 0, 44])[1:len]
             @test data(attr) == vals
         end
     end
@@ -482,7 +486,7 @@ GC.gc(true)
     @test attr0 isa Nothing
 
     for ((D, len, varname, T), (nm, attr)) in attributes
-        val = T ≡ String ? "42" : T(42)
+        val = T ≡ String ? "42"^2500 : T(42)
         val::T
 
         attr1 = inquire_attribute(io, nm)
@@ -498,12 +502,12 @@ GC.gc(true)
                 # Length-1 non-string attribute arrays are mis-interpreted as values
                 @test is_value(attr)
                 @test size(attr) == len
-                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                vals = (T ≡ String ? String["42"^2500, "", "44"] : T[42, 0, 44])[1:len]
                 @test [data(attr)] == vals
             else
                 @test !is_value(attr)
                 @test size(attr) == len
-                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                vals = (T ≡ String ? String["42"^2500, "", "44"] : T[42, 0, 44])[1:len]
                 @test data(attr) == vals
             end
         end
