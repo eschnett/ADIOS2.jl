@@ -203,11 +203,22 @@ Schedule writing a scalar variable to a file.
 
 The variable is not written until `adios_perform_puts!` is called and
 the file is flushed or closed.
+
+# Keywords
+- `global_value`: for scalar variables (`shape=nothing`), `global_value=true` can be
+  passed to indicate that the variable will be a 'global' value, written once per step, as
+  opposed to a 'local' value written once per MPI rank per step.
 """
-function adios_put!(file::AdiosFile, name::AbstractString, scalar::AdiosType)
+function adios_put!(file::AdiosFile, name::AbstractString, scalar::T;
+                    global_value=false) where T <: AdiosType
     var = inquire_variable(file.io, name)
     if isnothing(var)
-        var = define_variable(file.io, name, scalar)
+        if T === String && !global_value
+            error("String variables cannot be defined as local values, because they "
+                  * "cannot be written as arrays. Pass `global_value=true` to define as "
+                  * "a global value instead.")
+        end
+        var = define_variable(file.io, name, scalar; global_value)
     end
     put!(file.engine, var, scalar)
     return var

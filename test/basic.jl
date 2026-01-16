@@ -50,17 +50,18 @@ const ENGINE_TYPE = "BP4"
         @test match(r"Variable\(.+\)", showmime(gval)) ≢ nothing
         variables[(shapeid_global_value, -1, -1, T)] = (nm, gval)
 
-        # Local value
-        nm = "lvalue.p$rankstr.$T"
-        lval = define_variable(io, nm, val)
-        @test lval isa Variable
-        @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
-                    string(lval)) ≢ nothing
-        @test match(r"Variable\(.+\)", showmime(lval)) ≢ nothing
-        variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
-
         # String arrays are not supported
         if T ≢ String
+            # Local value
+            # These are written as array variables, which is not allowed for String
+            nm = "lvalue.p$rankstr.$T"
+            lval = define_variable(io, nm, val)
+            @test lval isa Variable
+            @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                        string(lval)) ≢ nothing
+            @test match(r"Variable\(.+\)", showmime(lval)) ≢ nothing
+            variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
+
             for D in 1:3, len in 0:2
                 # size
                 sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
@@ -314,14 +315,15 @@ GC.gc(true)
         @test gval isa Variable
         variables[(shapeid_global_value, -1, -1, T)] = (nm, gval)
 
-        # Local value
-        nm = "lvalue.p$rankstr.$T"
-        lval = inquire_variable(io, nm)
-        @test lval isa Variable
-        variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
-
         # String arrays are not supported
         if T ≢ String
+            # Local value
+            # These are written as array variables, which is not allowed for String
+            nm = "lvalue.p$rankstr.$T"
+            lval = inquire_variable(io, nm)
+            @test lval isa Variable
+            variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
+
             for D in 1:3, len in 0:2
                 # Global array
                 nm = "garray.$T.$D.$len"
