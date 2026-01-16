@@ -10,6 +10,7 @@ else
     error("ADIOS2 is not properly installed. Please run Pkg.build(\"ADIOS2\") ",
           "and restart Julia.")
 end
+libadios2_c_handle::Ptr{Nothing} = Ptr{Nothing}()
 
 ### Helpers
 
@@ -34,6 +35,7 @@ include("extended_highlevel/adios_load.jl")
 
 function __init__()
     check_deps()
+    global libadios2_c_handle = dlopen(libadios2_c)
     return
 end
 

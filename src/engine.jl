@@ -240,7 +240,6 @@ function Base.get(engine::Engine, variable::Variable,
     if T ≡ String
         eltype(data) <: AbstractString ||
             throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
-        libadios2_c_handle = dlopen(libadios2_c)
         if dlsym(libadios2_c_handle, :adios2_get_string; throw_error=false) === nothing
             # `adios2_get_string()` function is not available, fall back to hard-coded
             # maximum size

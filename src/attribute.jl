@@ -110,7 +110,6 @@ function data(attribute::Attribute)
     tp = type(attribute)
     tp ≡ nothing && return nothing
     if tp ≡ String
-        libadios2_c_handle = dlopen(libadios2_c)
         if isval
             if dlsym(libadios2_c_handle, :adios2_attribute_string_data; throw_error=false) === nothing
                 # `adios2_attribute_string_data()` function is not available, fall back to
