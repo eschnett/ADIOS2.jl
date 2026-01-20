@@ -19,7 +19,7 @@ const ENGINE_TYPE = "BP4"
 
 # When ADIOS2 does not provide functions that can get the string length, getting
 # "42"^2500 would segfault because it is longer than a hard-coded limit.
-string_value = (adios_has_string_length_funcs ? "42"^2500 : "42")
+string_value = (have_adios2_get_string ? "42"^2500 : "42")
 
 @testset "File write tests" begin
     # Set up ADIOS

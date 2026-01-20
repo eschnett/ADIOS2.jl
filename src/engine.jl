@@ -240,17 +240,17 @@ function Base.get(engine::Engine, variable::Variable,
     if T ≡ String
         eltype(data) <: AbstractString ||
             throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
-        if dlsym(libadios2_c_handle, :adios2_get_string; throw_error=false) === nothing
-            # `adios2_get_string()` function is not available, fall back to hard-coded
-            # maximum size
-            buffer = fill(Cchar(0), string_array_element_max_size + 1)
-        else
+        if have_adios2_get_string
             string_length = Ref{Cint}()
             length_err = ccall((:adios2_get_string, libadios2_c), Cint,
                                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                                engine.ptr, variable.ptr, C_NULL, string_length)
             Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(variable))")
             buffer = fill(Cchar(0), string_length[] + 1)
+        else
+            # `adios2_get_string()` function is not available, fall back to hard-coded
+            # maximum size
+            buffer = fill(Cchar(0), string_array_element_max_size + 1)
         end
         err = ccall((:adios2_get, libadios2_c), Cint,
                     (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,

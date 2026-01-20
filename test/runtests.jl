@@ -26,7 +26,8 @@ const ADIOS2_VERSION = let
         @assert false
     end
 end
-adios_has_string_length_funcs = (dlsym(ADIOS2.libadios2_c_handle, :adios2_get_string; throw_error=false) !== nothing)
+
+using ADIOS2: have_adios2_get_string
 
 ################################################################################
 

@@ -156,7 +156,7 @@ if comm_rank == 0
         @test fetch(v6) == makearray(4, float(ℯ))
         @test fetch(v7) == makearray(5, float(ℯ))
 
-        if adios_has_string_length_funcs
+        if have_adios2_get_string
             long_string = adios_get(file, "long_string")
             @test !isready(long_string)
             @test fetch(long_string) == fill("a"^5000)
