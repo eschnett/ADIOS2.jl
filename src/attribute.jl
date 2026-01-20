@@ -117,7 +117,7 @@ function data(attribute::Attribute)
                                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                                    attribute.ptr, C_NULL, string_length)
                 Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(attribute))")
-                buffer = fill(Cchar(0), string_length[] + 1)
+                buffer = Vector{Cchar}(undef, string_length[])
             else
                 # `adios2_attribute_string_data()` function is not available, fall back to
                 # hard-coded maximum size
@@ -129,17 +129,21 @@ function data(attribute::Attribute)
                         attribute.ptr)
             @assert out_sz[] == sz
             Error(err) ≠ error_none && return nothing
-            data = unsafe_string(pointer(buffer))
+            if have_adios2_get_string
+                data = unsafe_string(pointer(buffer), string_length[])
+            else
+                data = unsafe_string(pointer(buffer))
+            end
             return data
         else
             if have_adios2_get_string
-                string_lengths = fill(Cint(0), sz)
+                string_lengths = Vector{Csize_t}(undef, sz)
                 string_lengths_ptr = pointer(string_lengths)
                 length_err = ccall((:adios2_attribute_string_data_array, libadios2_c), Cint,
                                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                                    attribute.ptr, C_NULL, string_lengths_ptr)
                 Error(length_err) ≠ error_none && error("Failed to get length of strings for $(name(attribute))")
-                arrays = [Array{Cchar}(undef, l + 1) for l in string_lengths]
+                arrays = [Array{Cchar}(undef, l) for l in string_lengths]
             else
                 # `adios2_attribute_string_data()` function is not available, fall back to
                 # hard-coded maximum size
@@ -153,7 +157,11 @@ function data(attribute::Attribute)
                         out_sz, attribute.ptr)
             @assert out_sz[] == sz
             Error(err) ≠ error_none && return nothing
-            data = unsafe_string.(buffers)::Vector{String}
+            if have_adios2_get_string
+                data = String[unsafe_string(b, l) for (b, l) ∈ zip(buffers, string_lengths)]
+            else
+                data = unsafe_string.(buffers)::Vector{String}
+            end
             # Use `arrays` again to ensure it is not GCed too early
             buffers .= pointer.(arrays)
             return data

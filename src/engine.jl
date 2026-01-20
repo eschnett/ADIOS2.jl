@@ -246,26 +246,33 @@ function Base.get(engine::Engine, variable::Variable,
                                (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
                                engine.ptr, variable.ptr, C_NULL, string_length)
             Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(variable))")
-            buffer = fill(Cchar(0), string_length[] + 1)
+            buffer = Vector{Cchar}(undef, string_length[])
+            err = ccall((:adios2_get, libadios2_c), Cint,
+                        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
+                        variable.ptr, buffer, Cint(launch))
+            string_value = unsafe_string(pointer(buffer), string_length[])
         else
             # `adios2_get_string()` function is not available, fall back to hard-coded
-            # maximum size
+            # maximum size.
+            # No length passed to `unsafe_string()`, so buffer must be a null-terminated
+            # string.
             buffer = fill(Cchar(0), string_array_element_max_size + 1)
+            err = ccall((:adios2_get, libadios2_c), Cint,
+                        (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
+                        variable.ptr, buffer, Cint(launch))
+            string_value = unsafe_string(pointer(buffer))
         end
-        err = ccall((:adios2_get, libadios2_c), Cint,
-                    (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Cint), engine.ptr,
-                    variable.ptr, buffer, Cint(launch))
         if launch ≡ mode_deferred
             push!(engine.get_targets, (engine, variable))
             if data isa Ref
                 push!(engine.get_tasks,
-                      () -> data[] = unsafe_string(pointer(buffer)))
+                      () -> data[] = string_value)
             else
                 push!(engine.get_tasks,
-                      () -> data[begin] = unsafe_string(pointer(buffer)))
+                      () -> data[begin] = string_value)
             end
         else
-            data[] = unsafe_string(pointer(buffer))
+            data[] = string_value
         end
     else
         eltype(data) ≡ T ||
