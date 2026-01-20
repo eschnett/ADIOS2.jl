@@ -156,10 +156,16 @@ if comm_rank == 0
         @test fetch(v6) == makearray(4, float(ℯ))
         @test fetch(v7) == makearray(5, float(ℯ))
 
-        long_string = adios_get(file, "long_string")
-        @test !isready(long_string)
-        @test fetch(long_string) == fill("a"^5000)
-        @test isready(long_string)
+        if adios_has_string_length_funcs
+            long_string = adios_get(file, "long_string")
+            @test !isready(long_string)
+            @test fetch(long_string) == fill("a"^5000)
+            @test isready(long_string)
+        else
+            # Without functions that can get the string length from ADIOS2, getting
+            # "long_string" would segfault because it is longer than a hard-coded limit.
+            @test_skip long_string = adios_get(file, "long_string")
+        end
 
         close(file)
     end

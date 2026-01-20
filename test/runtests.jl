@@ -1,5 +1,6 @@
 using ADIOS2
 using Base.Filesystem
+using Libdl
 using MPI
 using Printf
 using Test
@@ -25,6 +26,7 @@ const ADIOS2_VERSION = let
         @assert false
     end
 end
+adios_has_string_length_funcs = (dlsym(ADIOS2.libadios2_c_handle, :adios2_get_string; throw_error=false) !== nothing)
 
 ################################################################################
 
