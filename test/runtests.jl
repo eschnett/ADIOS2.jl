@@ -1,5 +1,6 @@
 using ADIOS2
 using Base.Filesystem
+using Libdl
 using MPI
 using Printf
 using Test
@@ -25,6 +26,8 @@ const ADIOS2_VERSION = let
         @assert false
     end
 end
+
+using ADIOS2: have_adios2_get_string
 
 ################################################################################
 

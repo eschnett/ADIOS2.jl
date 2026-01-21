@@ -111,18 +111,45 @@ function data(attribute::Attribute)
     tp ≡ nothing && return nothing
     if tp ≡ String
         if isval
-            buffer = fill(Cchar(0), string_array_element_max_size)
+            if have_adios2_get_string
+                string_length = Ref{Cint}()
+                length_err = ccall((:adios2_attribute_string_data, libadios2_c), Cint,
+                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                                   attribute.ptr, C_NULL, string_length)
+                Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(attribute))")
+                buffer = Vector{Cchar}(undef, string_length[])
+            else
+                # `adios2_attribute_string_data()` function is not available, fall back to
+                # hard-coded maximum size
+                buffer = fill(Cchar(0), string_array_element_max_size)
+            end
             out_sz = Ref{Csize_t}()
             err = ccall((:adios2_attribute_data, libadios2_c), Cint,
                         (Ptr{Cchar}, Ref{Csize_t}, Ptr{Cvoid}), buffer, out_sz,
                         attribute.ptr)
             @assert out_sz[] == sz
             Error(err) ≠ error_none && return nothing
-            data = unsafe_string(pointer(buffer))
+            if have_adios2_get_string
+                data = unsafe_string(pointer(buffer), string_length[])
+            else
+                data = unsafe_string(pointer(buffer))
+            end
             return data
         else
-            arrays = [Array{Cchar}(undef, string_array_element_max_size)
-                      for i in 1:sz]
+            if have_adios2_get_string
+                string_lengths = Vector{Csize_t}(undef, sz)
+                string_lengths_ptr = pointer(string_lengths)
+                length_err = ccall((:adios2_attribute_string_data_array, libadios2_c), Cint,
+                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                                   attribute.ptr, C_NULL, string_lengths_ptr)
+                Error(length_err) ≠ error_none && error("Failed to get length of strings for $(name(attribute))")
+                arrays = [Array{Cchar}(undef, l) for l in string_lengths]
+            else
+                # `adios2_attribute_string_data()` function is not available, fall back to
+                # hard-coded maximum size
+                arrays = [Array{Cchar}(undef, string_array_element_max_size)
+                          for i in 1:sz]
+            end
             buffers = [pointer(array) for array in arrays]::Vector{Ptr{Cchar}}
             out_sz = Ref{Csize_t}()
             err = ccall((:adios2_attribute_data, libadios2_c), Cint,
@@ -130,7 +157,11 @@ function data(attribute::Attribute)
                         out_sz, attribute.ptr)
             @assert out_sz[] == sz
             Error(err) ≠ error_none && return nothing
-            data = unsafe_string.(buffers)::Vector{String}
+            if have_adios2_get_string
+                data = String[unsafe_string(b, l) for (b, l) ∈ zip(buffers, string_lengths)]
+            else
+                data = unsafe_string.(buffers)::Vector{String}
+            end
             # Use `arrays` again to ensure it is not GCed too early
             buffers .= pointer.(arrays)
             return data

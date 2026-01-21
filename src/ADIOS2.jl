@@ -10,6 +10,7 @@ else
     error("ADIOS2 is not properly installed. Please run Pkg.build(\"ADIOS2\") ",
           "and restart Julia.")
 end
+const have_adios2_get_string = (dlsym(dlopen(libadios2_c), :adios2_get_string; throw_error=false) !== nothing)
 
 ### Helpers
 

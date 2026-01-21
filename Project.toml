@@ -1,10 +1,10 @@
 authors = ["Erik Schnetter <schnetter@gmail.com>"]
 name = "ADIOS2"
 uuid = "e0ce9d3b-0dbd-416f-8264-ccca772f60ec"
-version = "1.5.0"
+version = "1.5.1"
 
 [compat]
-ADIOS2_jll = "2.10.4"
+ADIOS2_jll = "201.1100.2"
 MPI = "0.20"
 julia = "1.10"
 

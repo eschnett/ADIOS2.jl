@@ -39,7 +39,7 @@ export define_variable
                          shape::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
                          start::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
                          count::Union{Nothing,NTuple{N,Int} where N,CartesianIndex}=nothing,
-                         constant_dims::Bool=false)
+                         constant_dims::Bool=false; global_value=false)
     variable::Union{Nothing,Variable}
 
 Define a variable within `io`.
@@ -54,6 +54,11 @@ Define a variable within `io`.
 - `count`: local dimension
 - `constant_dims`: `true`: shape, start, count won't change; `false`:
   shape, start, count will change after definition
+
+# Keywords
+- `global_value`: for scalar variables (`shape=nothing`), `global_value=true` can be
+  passed to indicate that the variable will be a 'global' variable, written once per step,
+  as opposed to a 'local' variable written once per MPI rank per step.
 """
 function define_variable(io::AIO, name::AbstractString, type::Type,
                          shape::LocalValue)
@@ -84,8 +89,16 @@ function define_variable(io::AIO, name::AbstractString, type::Type,
     return ptr == C_NULL ? nothing : Variable(ptr, io.adios)
 end
 
-function define_variable(io::AIO, name::AbstractString, var::AdiosType)
-    return define_variable(io, name, typeof(var), LocalValue())
+function define_variable(io::AIO, name::AbstractString, var::AdiosType;
+                         global_value=false)
+    if global_value
+        # Define a 'global' value that will be stored as a scalar.
+        return define_variable(io, name, typeof(var))
+    else
+        # Define a 'local' value that will be stored in an array whose length is the
+        # number of MPI ranks.
+        return define_variable(io, name, typeof(var), LocalValue())
+    end
 end
 function define_variable(io::AIO, name::AbstractString,
                          arr::AbstractArray{<:AdiosType})
