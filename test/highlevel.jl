@@ -17,19 +17,23 @@ if comm_rank == 0
         adios_define_attribute(file, "a3", [float(π), 0])
 
         adios_put!(file, "v1", float(ℯ))
+        adios_put!(file, "v_global", float(ℯ); global_value=true)
         adios_put!(file, "v3", makearray(1, float(ℯ)))
         adios_put!(file, "v4", makearray(2, float(ℯ)))
         adios_put!(file, "v5", makearray(3, float(ℯ)))
         adios_put!(file, "g1/v6", makearray(4, float(ℯ)))
         adios_put!(file, "g1/g2/v7", makearray(5, float(ℯ)))
+        adios_put!(file, "long_string", "a"^5000; global_value=true)
 
         @test shapeid(inquire_variable(file.io, "v1")) == shapeid_local_value
+        @test shapeid(inquire_variable(file.io, "v_global")) == shapeid_global_value
         @test shapeid(inquire_variable(file.io, "v3")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v4")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v5")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "g1/v6")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "g1/g2/v7")) ==
               shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "long_string")) == shapeid_global_value
 
         adios_define_attribute(file, "v4/a4", float(π))
         adios_define_attribute(file, "v5", "a5", [float(π)])
@@ -76,52 +80,66 @@ if comm_rank == 0
         @test adios_attribute_data(file, "g1/v6", "a6") == [float(π), 0]
 
         @test Set(adios_all_variable_names(file)) ==
-              Set(["v1", "v3", "v4", "v5", "g1/v6", "g1/g2/v7"])
+              Set(["v1", "v_global", "v3", "v4", "v5", "g1/v6", "g1/g2/v7", "long_string"])
         @test Set(adios_group_variable_names(file, "g1")) == Set(["g1/v6"])
         @test Set(adios_group_variable_names(file, "g1/g2")) ==
               Set(["g1/g2/v7"])
 
         # Local values are converted to global arrays
         @test shapeid(inquire_variable(file.io, "v1")) == shapeid_global_array
+        @test shapeid(inquire_variable(file.io, "v_global")) == shapeid_global_value
         @test shapeid(inquire_variable(file.io, "v3")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v4")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "v5")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "g1/v6")) == shapeid_local_array
         @test shapeid(inquire_variable(file.io, "g1/g2/v7")) ==
               shapeid_local_array
+        @test shapeid(inquire_variable(file.io, "long_string")) == shapeid_global_value
 
         @test ndims(inquire_variable(file.io, "v1")) == 1
+        @test ndims(inquire_variable(file.io, "v_global")) == 0
         @test ndims(inquire_variable(file.io, "v3")) == 1
         @test ndims(inquire_variable(file.io, "v4")) == 2
         @test ndims(inquire_variable(file.io, "v5")) == 3
         @test ndims(inquire_variable(file.io, "g1/v6")) == 4
         @test ndims(inquire_variable(file.io, "g1/g2/v7")) == 5
+        @test ndims(inquire_variable(file.io, "long_string")) == 0
 
         @test shape(inquire_variable(file.io, "v1")) == (1,)
+        @test shape(inquire_variable(file.io, "v_global")) == ()
         @test shape(inquire_variable(file.io, "v3")) ≡ nothing
         @test shape(inquire_variable(file.io, "v4")) ≡ nothing
         @test shape(inquire_variable(file.io, "v5")) ≡ nothing
         @test shape(inquire_variable(file.io, "g1/v6")) ≡ nothing
         @test shape(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
+        @test shape(inquire_variable(file.io, "long_string")) == ()
 
         @test start(inquire_variable(file.io, "v1")) == (0,)
+        @test start(inquire_variable(file.io, "v_global")) == ()
         @test start(inquire_variable(file.io, "v3")) ≡ nothing
         @test start(inquire_variable(file.io, "v4")) ≡ nothing
         @test start(inquire_variable(file.io, "v5")) ≡ nothing
         @test start(inquire_variable(file.io, "g1/v6")) ≡ nothing
         @test start(inquire_variable(file.io, "g1/g2/v7")) ≡ nothing
+        @test start(inquire_variable(file.io, "long_string")) == ()
 
         @test count(inquire_variable(file.io, "v1")) == (1,)
+        @test count(inquire_variable(file.io, "v_global")) == ()
         @test count(inquire_variable(file.io, "v3")) == (1,)
         @test count(inquire_variable(file.io, "v4")) == (1, 1)
         @test count(inquire_variable(file.io, "v5")) == (1, 1, 1)
         @test count(inquire_variable(file.io, "g1/v6")) == (1, 1, 1, 1)
         @test count(inquire_variable(file.io, "g1/g2/v7")) == (1, 1, 1, 1, 1)
+        @test count(inquire_variable(file.io, "long_string")) == ()
 
         v1 = adios_get(file, "v1")
         @test !isready(v1)
         @test fetch(v1) == fill(float(ℯ), 1)
         @test isready(v1)
+        v_global = adios_get(file, "v_global")
+        @test !isready(v_global)
+        @test fetch(v_global) == fill(float(ℯ))
+        @test isready(v_global)
         v3 = adios_get(file, "v3")
         v4 = adios_get(file, "v4")
         @test !isready(v3)
@@ -197,6 +215,17 @@ if comm_rank == 0
         @test fetch(v5) == makearray(3, float(ℯ))
         @test fetch(v6) == makearray(4, float(ℯ))
         @test fetch(v7) == makearray(5, float(ℯ))
+        if have_adios2_get_string
+            long_string = adios_get(file, "long_string")
+            @test !isready(long_string)
+            @test fetch(long_string) == fill("a"^5000)
+            @test isready(long_string)
+        else
+            # Without functions that can get the string length from ADIOS2, getting
+            # "long_string" would segfault because it is longer than a hard-coded limit.
+            @test_skip long_string = adios_get(file, "long_string")
+        end
+
         close(file)
     end
 end

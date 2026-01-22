@@ -17,6 +17,10 @@ const filename = "$dirname/test.bp"
 # "BP3", "BP4", "BP5", "HDF5", "SST", "SSC", "DataMan", "Inline", "Null"
 const ENGINE_TYPE = "BP4"
 
+# When ADIOS2 does not provide functions that can get the string length, getting
+# "42"^2500 would segfault because it is longer than a hard-coded limit.
+string_value = (have_adios2_get_string ? "42"^2500 : "42")
+
 @testset "File write tests" begin
     # Set up ADIOS
     if use_mpi
@@ -50,17 +54,18 @@ const ENGINE_TYPE = "BP4"
         @test match(r"Variable\(.+\)", showmime(gval)) ≢ nothing
         variables[(shapeid_global_value, -1, -1, T)] = (nm, gval)
 
-        # Local value
-        nm = "lvalue.p$rankstr.$T"
-        lval = define_variable(io, nm, val)
-        @test lval isa Variable
-        @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
-                    string(lval)) ≢ nothing
-        @test match(r"Variable\(.+\)", showmime(lval)) ≢ nothing
-        variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
-
         # String arrays are not supported
         if T ≢ String
+            # Local value
+            # These are written as array variables, which is not allowed for String
+            nm = "lvalue.p$rankstr.$T"
+            lval = define_variable(io, nm, val)
+            @test lval isa Variable
+            @test match(r"Variable\(name=.+,type=.+,shapeid=.+,shape=.+\)",
+                        string(lval)) ≢ nothing
+            @test match(r"Variable\(.+\)", showmime(lval)) ≢ nothing
+            variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
+
             for D in 1:3, len in 0:2
                 # size
                 sz = ntuple(d -> len == 0 ? 0 : len == 1 ? 1 : d, D)
@@ -146,7 +151,9 @@ const ENGINE_TYPE = "BP4"
          # <https://github.com/ornladios/ADIOS2/issues/2734>
          # Complex{Float32}, Complex{Float64},
                   Int8, Int16, Int32, Int64, UInt8, UInt16, UInt32, UInt64]
-        val = T ≡ String ? "42" : T(42)
+        # Use a ludicrously long string for T≡String to test that we are not relying on
+        # the old hard-coded maximum length.
+        val = T ≡ String ? string_value : T(42)
         val::T
 
         # Attribute
@@ -170,7 +177,9 @@ const ENGINE_TYPE = "BP4"
 
         # Attribute arrays need to have at least one element (why?)
         for len in 1:2:3
-            vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+            # Include a ludicrously long string for T≡String to test that we are not
+            # relying on the old hard-coded maximum length.
+            vals = (T ≡ String ? String[string_value, "", "44"] : T[42, 0, 44])[1:len]
 
             # Attribute array
             nm = "array.p$rankstr.$T.$len"
@@ -210,12 +219,12 @@ const ENGINE_TYPE = "BP4"
         if D == -1
             @test is_value(attr)
             @test size(attr) == 1
-            val = T ≡ String ? "42" : T(42)
+            val = T ≡ String ? string_value : T(42)
             @test data(attr) == val
         else
             @test !is_value(attr)
             @test size(attr) == len
-            vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+            vals = (T ≡ String ? String[string_value, "", "44"] : T[42, 0, 44])[1:len]
             @test data(attr) == vals
         end
     end
@@ -314,14 +323,15 @@ GC.gc(true)
         @test gval isa Variable
         variables[(shapeid_global_value, -1, -1, T)] = (nm, gval)
 
-        # Local value
-        nm = "lvalue.p$rankstr.$T"
-        lval = inquire_variable(io, nm)
-        @test lval isa Variable
-        variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
-
         # String arrays are not supported
         if T ≢ String
+            # Local value
+            # These are written as array variables, which is not allowed for String
+            nm = "lvalue.p$rankstr.$T"
+            lval = inquire_variable(io, nm)
+            @test lval isa Variable
+            variables[(shapeid_local_value, -1, -1, T)] = (nm, lval)
+
             for D in 1:3, len in 0:2
                 # Global array
                 nm = "garray.$T.$D.$len"
@@ -480,7 +490,7 @@ GC.gc(true)
     @test attr0 isa Nothing
 
     for ((D, len, varname, T), (nm, attr)) in attributes
-        val = T ≡ String ? "42" : T(42)
+        val = T ≡ String ? string_value : T(42)
         val::T
 
         attr1 = inquire_attribute(io, nm)
@@ -496,12 +506,12 @@ GC.gc(true)
                 # Length-1 non-string attribute arrays are mis-interpreted as values
                 @test is_value(attr)
                 @test size(attr) == len
-                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                vals = (T ≡ String ? String[string_value, "", "44"] : T[42, 0, 44])[1:len]
                 @test [data(attr)] == vals
             else
                 @test !is_value(attr)
                 @test size(attr) == len
-                vals = (T ≡ String ? String["42", "", "44"] : T[42, 0, 44])[1:len]
+                vals = (T ≡ String ? String[string_value, "", "44"] : T[42, 0, 44])[1:len]
                 @test data(attr) == vals
             end
         end

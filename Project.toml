@@ -4,7 +4,7 @@ uuid = "e0ce9d3b-0dbd-416f-8264-ccca772f60ec"
 version = "1.6.0"
 
 [compat]
-ADIOS2_jll = "2.10.4"
+ADIOS2_jll = "201.1100.2"
 MPI = "0.20"
 julia = "1.10"
 
