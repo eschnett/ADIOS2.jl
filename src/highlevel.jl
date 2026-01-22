@@ -343,7 +343,7 @@ end
 
 export adios_get
 """
-    ioref = adios_get(file::AdiosFile, name::AbstractString)
+    ioref = adios_get(file::AdiosFile, name::AbstractString; start=nothing, count=nothing)
     ioref::Union{Nothing,IORef}
 
 Schedule reading a variable from a file.
@@ -352,19 +352,41 @@ The variable is not read until `adios_perform_gets` is called. This
 happens automatically when the `IORef` is accessed (via `fetch`). It
 is most efficient to first schedule multiple variables for reading,
 and then executing the reads together.
+
+`start` and `counts` can be used to select a subset of the data, as
+defined by [`set_selection`](@ref).
 """
-function adios_get(file::AdiosFile, name::AbstractString)
+function adios_get(file::AdiosFile, name::AbstractString; start=nothing, count=nothing)
     var = inquire_variable(file.io, name)
     var ≡ nothing && return nothing
     T = type(var)
     T ≡ nothing && return nothing
     D = ndims(var)
     D ≡ nothing && return nothing
-    sh = count(var)
+    sh = ADIOS2.count(var)
     sh ≡ nothing && return nothing
+    if start !== nothing || count !== nothing
+        if start === nothing
+            start = ntuple(i->0, D)
+        else
+            # Convert `start` to 0-based indexing
+            start = start .- 1
+        end
+        if count === nothing
+            count = ntuple(i->(Int(sh[i]) - start[i]), D)
+        end
+        set_selection(var, start, count)
+        orig_sh = sh
+        sh = count
+    end
     ioref = IORef{T,D}(file.engine, Array{T,D}(undef, Tuple(sh)))
     get(file.engine, var, ioref.array)
     push!(file.engine.get_tasks, () -> (ioref.engine = nothing))
+    if start !== nothing || count !== nothing
+        # Unset selection on variable to avoid messing up future operations.
+        zero_start = ntuple(i->0, D)
+        set_selection(var, zero_start, Int.(orig_sh))
+    end
     return ioref
 end
 

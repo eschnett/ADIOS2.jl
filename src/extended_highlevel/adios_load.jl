@@ -1,6 +1,6 @@
 export adios_load
 """
-    adios_load(file::AdiosFile, [varName(s)], [step(s)])
+    adios_load(file::AdiosFile, [varName(s)], [step(s)]; start=nothing, count=nothing)
 
 Read variable data from ADIOS file with optional variable name(s) and step selection(s).
 
@@ -14,6 +14,13 @@ Read variable data from ADIOS file with optional variable name(s) and step selec
 - Third (Optional):
   - `step` (::`Integer`): Single step index (0-based)
   - `step_list` (::`AbstractArray{<:Integer}`): Array of step indices
+
+# Keywords
+- `start`: when loading a single variable, can be passed a length-N Tuple giving the
+  positions to start reading data in each dimension. Note than `start` should be given
+  in standard Julian 1-based indexing.
+- `count`: when loading a single variable, can be passed a length-N Tuple giving the
+  number of entries to read in each dimension.
 
 # Returns
 For a variable of N-D data, returns an (N+1)-D array with the last dimension being the steps.
@@ -34,14 +41,17 @@ data_dict = adios_load(file)
 
 # Read all steps of a variable
 data = adios_load(file, "temperature")
+data = adios_load(file, "temperature"; start=[3,4], count=[10,20])
 
 # Read of a variable at a specific step
 data = adios_load(file, "temperature", 5)
+data = adios_load(file, "temperature", 5; start=[3,4], count=[10,20])
 
 # Read specific steps at multiple steps (order is not sorted)
 data = adios_load(file, "temperature", [1,3,6])
 data = adios_load(file, "temperature", [6,3,1]) # reverse of previous example
 data = adios_load(file, "temperature", 50:100)
+data = adios_load(file, "temperature", 50:100; start=[3,4], count=[10,20])
 
 # Read multiple variables at a specific step
 data_dict = adios_load(file, ["temperature", "pressure"], 5)
@@ -75,9 +85,18 @@ function adios_load(file::AdiosFile, step_list::AbstractArray{<:Integer})
     return adios_load(file, all_varNames, step_list)
 end
 
+function adios_load(file::AdiosFile, varName::AbstractString; start=nothing, count=nothing)
+    Nsteps = steps(file.engine)
+    if Nsteps == 0
+        return adios_load(file, varName, Val{:no_step}; start, count)
+    else
+        step_list = 0:(Nsteps - 1)
+        return adios_load(file, varName, step_list; start, count)
+    end
+end
+
 function adios_load(file::AdiosFile,
-                    varNames::Union{AbstractString,
-                                    AbstractArray{<:AbstractString},Regex})
+                    varNames::Union{AbstractArray{<:AbstractString},Regex})
     Nsteps = steps(file.engine)
     if Nsteps == 0
         return adios_load(file, varNames, Val{:no_step})
@@ -87,9 +106,13 @@ function adios_load(file::AdiosFile,
     end
 end
 
+function adios_load(file::AdiosFile, varName::AbstractString, step::Integer;
+                    start=nothing, count=nothing)
+    return adios_load(file, varName, [step]; start, count)
+end
+
 function adios_load(file::AdiosFile,
-                    varNames::Union{AbstractString,
-                                    AbstractArray{<:AbstractString},Regex},
+                    varNames::Union{AbstractArray{<:AbstractString},Regex},
                     step::Integer)
     return adios_load(file, varNames, [step])
 end
@@ -107,17 +130,19 @@ end
 
 # Main fallback function to load a variable
 function adios_load(file::AdiosFile, varName::AbstractString,
-                    step_list::AbstractArray{<:Integer})
+                    step_list::AbstractArray{<:Integer}; start=nothing, count=nothing)
     @assert openmode(file.engine) === mode_readRandomAccess "File must be opened with `mode_readRandomAccess`"
     _check_validity_of_steps(file, step_list)
 
     # Schedule reading for the requested variable
-    ioref = _schedule_tasks_randomAccess(file, varName, step_list)
+    ioref = _schedule_tasks_randomAccess(file, varName, step_list; start, count)
 
     # Perform all reads at once
     perform_gets(file.engine)
 
-    return _normalize_data_shape(ioref)
+    # If `start` or `count` was passed, then the data is not a scalar and so never needs
+    # to be normalized.
+    return _normalize_data_shape(ioref, start !== nothing || count !== nothing)
 end
 
 # Main fallback function to load mulitple variables
@@ -147,8 +172,8 @@ function adios_load(file::AdiosFile, varNames::AbstractArray{<:AbstractString},
 end
 
 function adios_load(file::AdiosFile, varName::AbstractString,
-                    ::Type{Val{:no_step}})
-    return fectch(adios_get(file, varName))
+                    ::Type{Val{:no_step}}; start=nothing, count=nothing)
+    return fetch(adios_get(file, varName; start=nothing, count=nothing))
 end
 
 function adios_load(file::AdiosFile, varNames::AbstractArray{<:AbstractString},
@@ -172,7 +197,7 @@ end
 # Convenience dispatches for loading from a file path or directory
 """
     adios_load(bpPath::AbstractString)
-    adios_load(bpPath::AbstractString, args...)
+    adios_load(bpPath::AbstractString, args...; kwargs...)
 
 Convenient highest-level API to read variable data directly from ADIOS's BP file path.
 
@@ -183,6 +208,9 @@ is available through the same argument patterns.
 # Arguments
 - `bpPath` (`AbstractString`): Path to ADIOS's BP file/directory ending with `.bp` extension
 - `args...`: Same arguments as `adios_load(file::AdiosFile, ...)` - variable names, steps, etc.
+
+# Keywords
+- `kwargs...`: Same keyword arguments as `adios_load(file::AdiosFile, ...)`.
 
 # Returns
 Same return types as `adios_load(file::AdiosFile, ...)`:
@@ -227,10 +255,10 @@ function adios_load(bpPath::AbstractString)
     end
 end
 
-function adios_load(bpPath::AbstractString, args...)
+function adios_load(bpPath::AbstractString, args...; kwargs...)
     if (isdir(bpPath) || isfile(bpPath))  && endswith(bpPath, ".bp")
         file = adios_open_serial(bpPath, mode_readRandomAccess)
-        result = adios_load(file, args...)
+        result = adios_load(file, args...; kwargs...)
         close(file)
         return result
     else
@@ -275,12 +303,28 @@ end
 # Schedule variable reading tasks in mode_readRandomAccess for specified steps.
 # Returns array of IORef objects ready for batch processing.
 function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
-                                      steps::AbstractArray{<:Integer})
+                                      steps::AbstractArray{<:Integer}; start=nothing,
+                                      count=nothing)
     var = inquire_variable(file.io, varName)
     if var === nothing
         error("Variable '$varName' not found in the file")
     end
     T, D, sh = _get_var_type_ndims_shape(var)
+
+    if start !== nothing || count !== nothing
+        if start === nothing
+            start = ntuple(i->0, D)
+        else
+            # Convert `start` to 0-based indexing
+            start = start .- 1
+        end
+        if count === nothing
+            count = ntuple(i->(Int(sh[i]) - start[i]), D)
+        end
+        set_selection(var, start, count)
+        orig_sh = sh
+        sh = count
+    end
 
     # Schedule reading for all requested steps
     iorefs = IORef[]
@@ -295,11 +339,18 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
         push!(iorefs, ioref)
     end
 
+    if start !== nothing || count !== nothing
+        # Unset selection on variable to avoid messing up future operations.
+        zero_start = ntuple(i->0, D)
+        set_selection(var, zero_start, Int.(orig_sh))
+    end
+
     return iorefs
 end
 
 function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
-                                      step_list::UnitRange{<:Integer})
+                                      step_list::UnitRange{<:Integer}; start=nothing,
+                                      count=nothing)
     @assert minimum(step_list) >= 0 "Steps must be non-negative integers"
     @assert maximum(step_list) < steps(file.engine) "Steps must be less than total steps"
 
@@ -309,6 +360,21 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
     end
     T, D, sh = _get_var_type_ndims_shape(var)
 
+    if start !== nothing || count !== nothing
+        if start === nothing
+            start = ntuple(i->0, D)
+        else
+            # Convert `start` to 0-based indexing
+            start = start .- 1
+        end
+        if count === nothing
+            count = ntuple(i->(Int(sh[i]) - start[i]), D)
+        end
+        set_selection(var, start, count)
+        orig_sh = sh
+        sh = count
+    end
+
     # For contiguous UnitRange, create a single IORef
     set_step_selection(var, step_list[1], length(step_list))
 
@@ -317,16 +383,22 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
     get(file.engine, var, ioref.array)
     push!(file.engine.get_tasks, () -> (ioref.engine = nothing))
 
+    if start !== nothing || count !== nothing
+        # Unset selection on variable to avoid messing up future operations.
+        zero_start = ntuple(i->0, D)
+        set_selection(var, zero_start, Int.(orig_sh))
+    end
+
     return ioref
 end
 
 # Normalize data shape from IORef objects for consistent output format.
 # Returns data in the appropriate dimensionality based on content.
 # Handles both scalar and array data properly with steps as the last dimension.
-function _normalize_data_shape(ioref::IORef)
+function _normalize_data_shape(ioref::IORef, is_array::Bool=false)
     @assert isready(ioref) "IORefs must be ready before assembling data"
 
-    if ndims(ioref.array) == 2 && size(ioref.array, 1) == 1
+    if !is_array && ndims(ioref.array) == 2 && size(ioref.array, 1) == 1
         # This is a collection of scalar
         # return it as a Vector, not as a Matrix
         result = ioref.array[:]
@@ -338,7 +410,7 @@ function _normalize_data_shape(ioref::IORef)
     return result
 end
 
-function _normalize_data_shape(iorefs::AbstractArray{<:IORef})
+function _normalize_data_shape(iorefs::AbstractArray{<:IORef}, is_array::Bool=false)
     @assert all(isready.(iorefs)) "All IORefs must be ready before assembling data"
 
     N_steps = length(iorefs)
@@ -358,9 +430,14 @@ function _normalize_data_shape(iorefs::AbstractArray{<:IORef})
         result = data_arr[1][]
     else
         # Array
-        result_shape = result_shape[1:last_index]
-        if result_shape[1] == 1
-            result_shape = result_shape[2:end]
+        if !is_array
+            result_shape = result_shape[1:last_index]
+            if result_shape[1] == 1
+                result_shape = result_shape[2:end]
+            end
+        elseif N_steps == 1
+            # Only one time point, so remove time dimension
+            result_shape = result_shape[1:end-1]
         end
 
         D = length(result_shape)
