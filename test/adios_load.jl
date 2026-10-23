@@ -28,11 +28,11 @@
             adios_put!(file, "array3D", array3D)
 
             # with complex names
-            adios_put!(file, "scalar_A", scalar)
-            adios_put!(file, "scalar_B", scalar)
-            adios_put!(file, "abc_scalar23", scalar)
-            adios_put!(file, "scalar234", scalar)
-            adios_put!(file, "deep/in/nested/groups/scalar", scalar)
+            i > 0 && adios_put!(file, "scalar_A", scalar)
+            i > 3 && adios_put!(file, "scalar_B", scalar)
+            i < 9 && adios_put!(file, "abc_scalar23", scalar)
+            i ∈ 2:7 && adios_put!(file, "scalar234", scalar)
+            i ∈ [1, 2, 4, 7, 8, 9] && adios_put!(file, "deep/in/nested/groups/scalar", scalar)
             adios_put!(file, "another/deep/in/nested/groups/scalar", scalar)
 
             adios_perform_puts!(file)
@@ -56,11 +56,11 @@
         @test all_data["matrix"] == repeat(matrix, 1, 1, Nsteps)
         @test all_data["array3D"] == repeat(array3D, 1, 1, 1, Nsteps)
 
-        @test all_data["scalar_A"] == fill(scalar, Nsteps)
-        @test all_data["scalar_B"] == fill(scalar, Nsteps)
-        @test all_data["abc_scalar23"] == fill(scalar, Nsteps)
-        @test all_data["scalar234"] == fill(scalar, Nsteps)
-        @test all_data["deep/in/nested/groups/scalar"] == fill(scalar, Nsteps)
+        @test all_data["scalar_A"] == fill(scalar, Nsteps - 1)
+        @test all_data["scalar_B"] == fill(scalar, Nsteps - 4)
+        @test all_data["abc_scalar23"] == fill(scalar, Nsteps - 1)
+        @test all_data["scalar234"] == fill(scalar, 6)
+        @test all_data["deep/in/nested/groups/scalar"] == fill(scalar, 6)
         @test all_data["another/deep/in/nested/groups/scalar"] ==
               fill(scalar, Nsteps)
 
@@ -151,13 +151,13 @@
                 "matrix" => repeat(matrix, 1, 1, 3))
 
         @test adios_load(file, r"scalar.*[^\/]+") ==
-              Dict("scalar_A" => fill(scalar, Nsteps),
-                   "scalar_B" => fill(scalar, Nsteps),
-                   "abc_scalar23" => fill(scalar, Nsteps),
-                   "scalar234" => fill(scalar, Nsteps))
+              Dict("scalar_A" => fill(scalar, Nsteps - 1),
+                   "scalar_B" => fill(scalar, Nsteps - 4),
+                   "abc_scalar23" => fill(scalar, Nsteps - 1),
+                   "scalar234" => fill(scalar, 6))
 
         @test adios_load(file, r"deep.*scalar") ==
-              Dict("deep/in/nested/groups/scalar" => fill(scalar, Nsteps),
+              Dict("deep/in/nested/groups/scalar" => fill(scalar, 6),
                    "another/deep/in/nested/groups/scalar" => fill(scalar, Nsteps))
 
         close(file)

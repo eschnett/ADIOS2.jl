@@ -90,8 +90,7 @@ function adios_load(file::AdiosFile, varName::AbstractString; start=nothing, cou
     if Nsteps == 0
         return adios_load(file, varName, Val{:no_step}; start, count)
     else
-        step_list = 0:(Nsteps - 1)
-        return adios_load(file, varName, step_list; start, count)
+        return adios_load(file, varName, nothing; start, count)
     end
 end
 
@@ -101,8 +100,7 @@ function adios_load(file::AdiosFile,
     if Nsteps == 0
         return adios_load(file, varNames, Val{:no_step})
     else
-        step_list = 0:(Nsteps - 1)
-        return adios_load(file, varNames, step_list)
+        return adios_load(file, varNames, nothing)
     end
 end
 
@@ -118,7 +116,7 @@ function adios_load(file::AdiosFile,
 end
 
 function adios_load(file::AdiosFile, name_pattern::Regex,
-                    step_list::AbstractArray{<:Integer})
+                    step_list::Union{AbstractArray{<:Integer},Nothing})
     varNames = filter(x -> occursin(name_pattern, x),
                       adios_all_variable_names(file))
     if length(varNames) == 1
@@ -130,9 +128,10 @@ end
 
 # Main fallback function to load a variable
 function adios_load(file::AdiosFile, varName::AbstractString,
-                    step_list::AbstractArray{<:Integer}; start=nothing, count=nothing)
+                    step_list::Union{AbstractArray{<:Integer},Nothing};
+                    start=nothing, count=nothing)
     @assert openmode(file.engine) === mode_readRandomAccess "File must be opened with `mode_readRandomAccess`"
-    _check_validity_of_steps(file, step_list)
+    step_list !== nothing && _check_validity_of_steps(file, step_list)
 
     # Schedule reading for the requested variable
     ioref = _schedule_tasks_randomAccess(file, varName, step_list; start, count)
@@ -147,9 +146,9 @@ end
 
 # Main fallback function to load mulitple variables
 function adios_load(file::AdiosFile, varNames::AbstractArray{<:AbstractString},
-                    step_list::AbstractArray{<:Integer})
+                    step_list::Union{AbstractArray{<:Integer},Nothing})
     @assert openmode(file.engine) === mode_readRandomAccess "File must be opened with `mode_readRandomAccess`"
-    _check_validity_of_steps(file, step_list)
+    step_list !== nothing && _check_validity_of_steps(file, step_list)
 
     varNames = filter_available_variables(file, varNames)
 
@@ -303,12 +302,14 @@ end
 # Schedule variable reading tasks in mode_readRandomAccess for specified steps.
 # Returns array of IORef objects ready for batch processing.
 function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
-                                      steps::AbstractArray{<:Integer}; start=nothing,
+                                      step_list::AbstractArray{<:Integer}; start=nothing,
                                       count=nothing)
     var = inquire_variable(file.io, varName)
     if var === nothing
         error("Variable '$varName' not found in the file")
     end
+    @assert minimum(step_list) >= 0 "Steps must be non-negative integers"
+    @assert maximum(step_list) < steps(var) "Steps must be less than total steps for $varName"
     T, D, sh = _get_var_type_ndims_shape(var)
 
     if start !== nothing || count !== nothing
@@ -328,8 +329,8 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
 
     # Schedule reading for all requested steps
     iorefs = IORef[]
-    sizehint!(iorefs, length(steps))
-    for step in steps
+    sizehint!(iorefs, length(step_list))
+    for step in step_list
         set_step_selection(var, step, 1)
 
         # Schedule reading data for the current step
@@ -349,14 +350,18 @@ function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
 end
 
 function _schedule_tasks_randomAccess(file::AdiosFile, varName::AbstractString,
-                                      step_list::UnitRange{<:Integer}; start=nothing,
-                                      count=nothing)
-    @assert minimum(step_list) >= 0 "Steps must be non-negative integers"
-    @assert maximum(step_list) < steps(file.engine) "Steps must be less than total steps"
+                                      step_list::Union{UnitRange{<:Integer},Nothing};
+                                      start=nothing, count=nothing)
 
     var = inquire_variable(file.io, varName)
     if var === nothing
         error("Variable '$varName' not found in the file")
+    end
+    if step_list === nothing
+        step_list = 0:steps(var)-1
+    else
+        @assert minimum(step_list) >= 0 "Steps must be non-negative integers"
+        @assert maximum(step_list) < steps(var) "Steps must be less than total steps for $varName"
     end
     T, D, sh = _get_var_type_ndims_shape(var)
 
