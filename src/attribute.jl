@@ -112,16 +112,18 @@ function data(attribute::Attribute)
     if tp ≡ String
         if isval
             if have_adios2_get_string
-                string_length = Ref{Cint}()
+                string_length = Ref{Csize_t}()
                 length_err = ccall((:adios2_attribute_string_data, libadios2_c), Cint,
-                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Csize_t}),
                                    attribute.ptr, C_NULL, string_length)
                 Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(attribute))")
-                buffer = Vector{Cchar}(undef, string_length[])
+                # `adios2_attribute_data` appends a NUL terminator, which
+                # is not included in `string_length`
+                buffer = Vector{Cchar}(undef, string_length[] + 1)
             else
                 # `adios2_attribute_string_data()` function is not available, fall back to
                 # hard-coded maximum size
-                buffer = fill(Cchar(0), string_array_element_max_size)
+                buffer = fill(Cchar(0), string_array_element_max_size + 1)
             end
             out_sz = Ref{Csize_t}()
             err = ccall((:adios2_attribute_data, libadios2_c), Cint,
@@ -140,14 +142,16 @@ function data(attribute::Attribute)
                 string_lengths = Vector{Csize_t}(undef, sz)
                 string_lengths_ptr = pointer(string_lengths)
                 length_err = ccall((:adios2_attribute_string_data_array, libadios2_c), Cint,
-                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                                   (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Csize_t}),
                                    attribute.ptr, C_NULL, string_lengths_ptr)
                 Error(length_err) ≠ error_none && error("Failed to get length of strings for $(name(attribute))")
-                arrays = [Array{Cchar}(undef, l) for l in string_lengths]
+                # `adios2_attribute_data` appends a NUL terminator to each
+                # string, which is not included in `string_lengths`
+                arrays = [Array{Cchar}(undef, l + 1) for l in string_lengths]
             else
                 # `adios2_attribute_string_data()` function is not available, fall back to
                 # hard-coded maximum size
-                arrays = [Array{Cchar}(undef, string_array_element_max_size)
+                arrays = [Array{Cchar}(undef, string_array_element_max_size + 1)
                           for i in 1:sz]
             end
             buffers = [pointer(array) for array in arrays]::Vector{Ptr{Cchar}}
