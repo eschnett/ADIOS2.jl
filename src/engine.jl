@@ -241,9 +241,9 @@ function Base.get(engine::Engine, variable::Variable,
         eltype(data) <: AbstractString ||
             throw(ArgumentError("ADIOS2: `data` element type for string variables must be a subtype of `AbstractString`"))
         if have_adios2_get_string
-            string_length = Ref{Cint}()
+            string_length = Ref{Csize_t}()
             length_err = ccall((:adios2_get_string, libadios2_c), Cint,
-                               (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cint}),
+                               (Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Cvoid}, Ptr{Csize_t}),
                                engine.ptr, variable.ptr, C_NULL, string_length)
             Error(length_err) ≠ error_none && error("Failed to get length of string for $(name(variable))")
             buffer = Vector{Cchar}(undef, string_length[])

@@ -229,3 +229,36 @@ if comm_rank == 0
         close(file)
     end
 end
+
+if comm_rank == 0
+    # Regression test for
+    # <https://github.com/eschnett/ADIOS2.jl/issues/26>: reading string
+    # attributes used to write a NUL terminator one byte past the end
+    # of the buffer, corrupting the heap
+    @testset "Read string attributes repeatedly " begin
+        dirname3 = Filesystem.mktempdir()
+        filename3 = "$dirname3/test.bp"
+        strings(i) = ["y"^(i % 7), "z"^(i % 13), "w"^(i % 16)]
+
+        file = adios_open_serial(filename3, mode_write)
+        for i in 1:50
+            adios_define_attribute(file, "s$i", "x"^(i % 24))
+            adios_define_attribute(file, "a$i", strings(i))
+        end
+        adios_put!(file, "v", 1.0)
+        adios_perform_puts!(file)
+        close(file)
+
+        file = adios_open_serial(filename3, mode_readRandomAccess)
+        ok = true
+        for iter in 1:100
+            for i in 1:50
+                ok &= adios_attribute_data(file, "s$i") == "x"^(i % 24)
+                ok &= adios_attribute_data(file, "a$i") == strings(i)
+            end
+            GC.gc(iter % 10 == 0)
+        end
+        @test ok
+        close(file)
+    end
+end
